@@ -514,12 +514,20 @@ function waitAndLoad(attempts){
     // Auth state listener
     sb.auth.onAuthStateChange(async(event,session)=>{
       currentUser=session?.user||null;
-      await onAuthChange(currentUser);
+      if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
+        await onAuthChange(currentUser);
+      }else if(event==='SIGNED_OUT'){
+        await onAuthChange(null);
+      }
     });
-    // Check current session
-    sb.auth.getSession().then(({data:{session}})=>{
+    // Handle email confirmation / OAuth redirect (token in URL hash)
+    sb.auth.getSession().then(async({data:{session}})=>{
       currentUser=session?.user||null;
-      onAuthChange(currentUser);
+      await onAuthChange(currentUser);
+      // Clean up URL hash after auth redirect
+      if(window.location.hash&&window.location.hash.includes('access_token')){
+        history.replaceState(null,'',window.location.pathname);
+      }
     });
     loadRanking();
   }catch(e){
