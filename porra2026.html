@@ -239,15 +239,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
     <div id="adm-content"></div>
   </div>
 </div>
-<div id="adm-modal">
-  <div class="admbox">
-    <div style="font-family:"Bebas Neue",sans-serif;font-size:1.35rem;margin-bottom:.8rem;color:var(--gold)">🔑 Admin</div>
-    <div class="field"><label id="lbl-pass">Contraseña</label><input type="password" id="adm-pass" onkeyup="if(event.key==='Enter')checkAdm()"></div>
-    <div style="display:flex;gap:.45rem">
-      <button class="btn btn-primary" onclick="checkAdm()" id="lbl-enter">Entrar</button>
-      <button class="btn btn-ghost" onclick="closeAdmModal()" id="lbl-cancel">Cancelar</button>
-    </div>
-    <div id="adm-err" style="margin-top:.45rem"></div>
+<div id="adm-modal" style="display:none">
   </div>
 </div>
 
@@ -493,9 +485,7 @@ const N_STEPS=6,STEP_KEYS=['step_you','group_phase','r32','oct','qf','sf_fin'];
 // ══ HARDCODED CONFIG ══
 const SB_URL='https://ygwoznvyadxbfzhtgowd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlnd296bnZ5YWR4YmZ6aHRnb3dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzM0OTMsImV4cCI6MjA5MzgwOTQ5M30.7zp-fSk8Jphd-0OwIgAP7YmUsUmPMfFq8aa8NzRUslg';
-// Admin password is checked against ADM_PASS (set below)
-// Change ADM_PASS to your desired password
-const ADM_PASS=localStorage.getItem('adm_pass')||'porra2026';
+// Admin access is controlled by the 'admins' table in Supabase (server-side)
 
 window.onload=()=>{
   LANG=localStorage.getItem('lang')||'es';
@@ -541,8 +531,10 @@ async function onAuthChange(user){
   isAdmin=false;
   if(user){
     // Check admin role
-    const{data}=await sb.from('admins').select('user_id').eq('user_id',user.id).maybeSingle();
-    isAdmin=!!data;
+    try{
+      const{data,error}=await sb.from('admins').select('user_id').eq('user_id',user.id).maybeSingle();
+      isAdmin=!error&&!!data;
+    }catch(e){isAdmin=false;}
     // Update UI
     const nav=document.getElementById('user-nav');
     const loginBtn=document.getElementById('btn-login-nav');
@@ -1030,12 +1022,12 @@ async function loadRanking(){
   const timeout=setTimeout(()=>{
     timedOut=true;
     rc.innerHTML='<div class="alert aerr">⏱ La consulta tardó demasiado. Comprueba tu conexión y recarga.</div>';
-  },8000);
+  },20000);
   const{data,error}=await query.order('puntos',{ascending:false});
   if(timedOut)return;
   clearTimeout(timeout);
-  if(error){c.innerHTML='<div class="alert aerr">'+error.message+'</div>';return;}
-  if(!data?.length){c.innerHTML='<div class="card"><div style="text-align:center;padding:2.5rem;color:var(--muted)">'+t('no_bets')+'</div></div>';return;}
+  if(error){rc.innerHTML='<div class="alert aerr">'+error.message+'</div>';return;}
+  if(!data?.length){rc.innerHTML='<div class="card"><div style="text-align:center;padding:2.5rem;color:var(--muted)">'+t('no_bets')+'</div></div>';return;}
   const PRICE=5;
   const total=data.length;
   const paid=data.filter(r=>r.paid).length;
@@ -1165,14 +1157,9 @@ function calcScore(porra,real){
 
 
 // ══ ADMIN ══
-function showAdmModal(){document.getElementById('adm-modal').classList.add('open');setTimeout(()=>document.getElementById('adm-pass').focus(),80);}
-function closeAdmModal(){document.getElementById('adm-modal').classList.remove('open');}
-function checkAdm(){
-  const enteredPass=document.getElementById('adm-pass').value;if(enteredPass===ADM_PASS||enteredPass===localStorage.getItem('adm_pass')){
-    
-    closeAdmModal();showPage('admin');admSec('bracket',document.querySelector('.stab'));
-  }else showMsg('adm-err','❌ Contraseña incorrecta','err');
-}
+function showAdmModal(){} // removed - auth via Supabase
+function closeAdmModal(){}
+function checkAdm(){} // removed - auth via Supabase
 function admSec(sec,btn){
   document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');
   const ac=document.getElementById('adm-content');
@@ -1234,7 +1221,7 @@ async function saveAdmRes(){
   document.getElementById('res-spin').style.display='none';document.getElementById('btn-saveres').disabled=false;
 }
 async function loadAdmBets(container){
-  const{data,error}=await sb.from('porras').select('nombre,puntos,paid,email,updated_at').order('nombre',{ascending:true});
+  const{data,error}=await sb.from('porras').select('nombre,puntos,paid,updated_at').order('nombre',{ascending:true});
   if(error){container.innerHTML='<div class="alert aerr">'+error.message+'</div>';return;}
   if(!data?.length){container.innerHTML='<div class="alert ainfo">'+t('no_bets')+'</div>';return;}
   let h='<div class="alert ainfo">Marca el checkbox cuando el participante haya pagado. Solo las porras <strong>pagadas</strong> aparecen en la clasificación pública.</div>';
@@ -1286,7 +1273,7 @@ function newBet(){
 
 // ══ VIEW BET DETAIL ══
 async function viewBetDetail(nombre){
-  const{data,error}=await sb.from('porras').select('nombre,puntos,paid,email,updated_at,data').eq('nombre',nombre).single();
+  const{data,error}=await sb.from('porras').select('nombre,puntos,paid,updated_at,data').eq('nombre',nombre).single();
   if(error||!data)return;
   const p=JSON.parse(data.data);
   const allT=TNAMES[LANG]||TNAMES.es;
@@ -1297,7 +1284,7 @@ async function viewBetDetail(nombre){
   h+='<span class="'+(data.paid?'paid-badge':'unpaid-badge')+'" style="font-size:.85rem;padding:.2rem .7rem">'+(data.paid?'✓ '+t('paid'):t('unpaid'))+'</span>';
   h+='<span style="color:var(--muted);font-size:.82rem">'+t('pts')+': <strong>'+data.puntos+'</strong></span>';
   h+='<span style="color:var(--muted);font-size:.8rem">'+new Date(data.updated_at).toLocaleString()+'</span>';
-  if(data.email)h+='<span style="color:var(--muted);font-size:.8rem">'+data.email+'</span>';
+  // email not shown publicly
   h+='</div>';
   // Groups
   h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--accent);letter-spacing:1px;margin-bottom:.5rem">FASE DE GRUPOS</div>';
