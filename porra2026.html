@@ -813,7 +813,7 @@ function stepSFX(){
   h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.9rem;color:var(--gold);letter-spacing:1px;margin:.85rem 0 .45rem">🎯 '+t('extras_lbl')+'</div>';
   h+='<div class="extgrid">';
   h+='<div class="extf"><label>🥇 '+t('winner')+'<span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:.3rem">(auto)</span></label><div id="ext-camp-display" style="background:var(--surf3);border:1px solid var(--border);border-radius:7px;padding:.5rem .72rem;font-size:.88rem;color:var(--muted);min-height:2.2rem;display:flex;align-items:center;gap:.4rem"><em>'+t('tbd')+'</em></div><input type="hidden" id="ext-camp"></div>';
-  h+='<div class="extf"><label>🇪🇸 '+t('spain_pos')+'</label><select id="ext-esp"><option value="">--</option>'+posOpts+'</select></div>';
+  h+='<div class="extf"><label>'+fi(28,true)+' '+t('spain_pos')+'</label><select id="ext-esp"><option value="">--</option>'+posOpts+'</select></div>';
   h+='<div class="extf"><label>⚽ '+t('top_scorer')+'</label><div class="ac-wrap"><input type="text" id="ext-gol" value="'+ls('ext-gol')+'" placeholder="'+t('player_hint')+'" oninput="acF(\'ext-gol\')" autocomplete="off"><div class="ac-list" id="ac-ext-gol"></div></div></div>';
   h+='<div class="extf"><label>🌟 '+t('best_player')+'</label><div class="ac-wrap"><input type="text" id="ext-jug" value="'+ls('ext-jug')+'" placeholder="'+t('player_hint')+'" oninput="acF(\'ext-jug\')" autocomplete="off"><div class="ac-list" id="ac-ext-jug"></div></div></div>';
   h+='</div>';
@@ -1172,8 +1172,8 @@ function admSec(sec,btn){
   document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');
   const ac=document.getElementById('adm-content');
   if(sec==='setup'){ac.innerHTML=buildSQL();return;}
-  if(sec==='bracket'){ac.innerHTML='<div class="spin"></div>';buildAdmBracket(c);return;}
-  if(sec==='bets'){ac.innerHTML='<div class="spin"></div>';loadAdmBets(c);return;}
+  if(sec==='bracket'){ac.innerHTML='<div class="spin"></div>';buildAdmBracket(ac);return;}
+  if(sec==='bets'){ac.innerHTML='<div class="spin"></div>';loadAdmBets(ac);return;}
   if(sec==='recalc')ac.innerHTML='<p class="hint" style="margin-bottom:.9rem">Recalcula los puntos de todos los participantes según los resultados guardados.</p><button class="btn btn-primary" onclick="recalcAll()">'+t('recalc_all')+'</button><div id="rc-msg" style="margin-top:.7rem"></div>';
 }
 async function buildAdmBracket(container){
@@ -1198,7 +1198,7 @@ async function buildAdmBracket(container){
     }
   });
   const posOpts=[['champion',t('champion')],['runner_up',t('runner_up')],['semis',t('semis')],['quarters',t('quarters')],['r16',t('r16')],['r32s',t('r32s')],['groups_out',t('groups_out')]].map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
-  h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.88rem;color:var(--gold);margin:.85rem 0 .38rem;letter-spacing:1px">EXTRAS</div><div class="extgrid"><div class="extf"><label>🥇 '+t('winner')+'</label><select id="adm_ext_camp"><option value="">--</option>'+opts+'</select></div><div class="extf"><label>🇪🇸 '+t('spain_pos')+'</label><select id="adm_ext_esp"><option value="">--</option>'+posOpts+'</select></div><div class="extf"><label>⚽ '+t('top_scorer')+'</label><div class="ac-wrap"><input type="text" id="adm_ext_gol" placeholder="'+t('player_hint')+'" oninput="acF(\'adm_ext_gol\')" autocomplete="off"><div class="ac-list" id="ac-adm_ext_gol"></div></div></div><div class="extf"><label>🌟 '+t('best_player')+'</label><div class="ac-wrap"><input type="text" id="adm_ext_jug" placeholder="'+t('player_hint')+'" oninput="acF(\'adm_ext_jug\')" autocomplete="off"><div class="ac-list" id="ac-adm_ext_jug"></div></div></div></div><div style="margin-top:.9rem;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap"><button class="btn btn-primary" id="btn-saveres" onclick="saveAdmRes()">'+t('save_recalc')+'</button><span id="res-spin" style="display:none"><div class="spin"></div></span></div><div id="res-msg" style="margin-top:.7rem"></div>';
+  h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.88rem;color:var(--gold);margin:.85rem 0 .38rem;letter-spacing:1px">EXTRAS</div><div class="extgrid"><div class="extf"><label>🥇 '+t('winner')+'</label><select id="adm_ext_camp"><option value="">--</option>'+opts+'</select></div><div class="extf"><label>'+fi(28,true)+' '+t('spain_pos')+'</label><select id="adm_ext_esp"><option value="">--</option>'+posOpts+'</select></div><div class="extf"><label>⚽ '+t('top_scorer')+'</label><div class="ac-wrap"><input type="text" id="adm_ext_gol" placeholder="'+t('player_hint')+'" oninput="acF(\'adm_ext_gol\')" autocomplete="off"><div class="ac-list" id="ac-adm_ext_gol"></div></div></div><div class="extf"><label>🌟 '+t('best_player')+'</label><div class="ac-wrap"><input type="text" id="adm_ext_jug" placeholder="'+t('player_hint')+'" oninput="acF(\'adm_ext_jug\')" autocomplete="off"><div class="ac-list" id="ac-adm_ext_jug"></div></div></div></div><div style="margin-top:.9rem;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap"><button class="btn btn-primary" id="btn-saveres" onclick="saveAdmRes()">'+t('save_recalc')+'</button><span id="res-spin" style="display:none"><div class="spin"></div></span></div><div id="res-msg" style="margin-top:.7rem"></div>';
   container.innerHTML=h;
   setTimeout(()=>{
     rounds.forEach(r=>{for(let i=1;i<=r.n;i++){const k=r.p+'_'+i,d=saved.ko?.[k]||{},sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};sv('adm_'+k+'_h',d.h);sv('adm_'+k+'_a',d.a);sv('adm_'+k+'_w',d.w);}});
@@ -1338,7 +1338,7 @@ async function viewBetDetail(nombre){
   h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.9rem;color:var(--gold);letter-spacing:1px;margin:.65rem 0 .35rem">EXTRAS</div>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.45rem">';
   if(ex.camp!=null)h+='<div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:.45rem .7rem;font-size:.8rem">🥇 '+t('winner')+'<br><strong>'+fi(ex.camp,true)+' '+allT[ex.camp]+'</strong></div>';
-  if(ex.esp)h+='<div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:.45rem .7rem;font-size:.8rem">🇪🇸 '+t('spain_pos')+'<br><strong>'+fmtEsp(ex.esp)+'</strong></div>';
+  if(ex.esp)h+='<div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:.45rem .7rem;font-size:.8rem">'+fi(28,true)+' '+t('spain_pos')+'<br><strong>'+fmtEsp(ex.esp)+'</strong></div>';
   if(ex.gol)h+='<div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:.45rem .7rem;font-size:.8rem">⚽ '+t('top_scorer')+'<br><strong>'+ex.gol+'</strong></div>';
   if(ex.jug)h+='<div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:.45rem .7rem;font-size:.8rem">🌟 '+t('best_player')+'<br><strong>'+ex.jug+'</strong></div>';
   h+='</div>';
@@ -1416,7 +1416,7 @@ function renderMyBetsList(data){
     // Quick summary
     h+='<div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.8rem;color:var(--muted)">';
     h+='<span>🥇 '+champStr+'</span>';
-    h+='<span>🇪🇸 '+fmtEsp(espStr)+'</span>';
+    h+='<span>'+fi(28,true)+' '+fmtEsp(espStr)+'</span>';
     if(ex.gol)h+='<span>⚽ '+ex.gol+'</span>';
     if(ex.jug)h+='<span>🌟 '+ex.jug+'</span>';
     h+='<span style="margin-left:auto;font-size:.74rem">'+new Date(r.updated_at).toLocaleString()+'</span>';
@@ -1592,7 +1592,7 @@ function showMsg(id,msg,type){
   </div>
 </div>
 <!-- USER MENU -->
-<div id="user-menu" style="display:none;position:fixed;top:58px;right:1rem;z-index:400;background:var(--surf1);border:1px solid var(--border);border-radius:10px;padding:.5rem;min-width:180px;box-shadow:0 4px 20px rgba(0,0,0,.4)">
+<div id="user-menu" style="display:none;position:fixed;top:62px;right:.75rem;z-index:400;background:var(--surf1);border:1px solid var(--border);border-radius:10px;padding:.5rem;min-width:180px;box-shadow:0 4px 20px rgba(0,0,0,.4)">
   <div style="padding:.4rem .6rem;font-size:.8rem;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:.3rem" id="user-menu-email"></div>
   <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:.82rem" onclick="showPage('porras');closeUserMenu()">📋 Mis Porras</button>
   <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:.82rem" id="user-menu-admin" style="display:none" onclick="showPage('admin');closeUserMenu()">⚙️ Admin</button>
