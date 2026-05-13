@@ -172,7 +172,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 <body>
 
 <header>
-  <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.55rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.45rem;opacity:.7">v1.0.0</span></div>
+  <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.55rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.45rem;opacity:.7">v1.0.1</span></div>
   <div id="deadline-wrap"></div>
   <div class="nav">
     <button class="nav-btn" id="tab-ranking" onclick="showPage('ranking')">🏆 <span id="lbl-ranking">Clasificación</span></button>
@@ -1585,7 +1585,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.0.0</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.0.1</div>';
   nc.innerHTML=h;
 }
 function showMsg(id,msg,type){
@@ -1598,7 +1598,7 @@ function showMsg(id,msg,type){
 
 </script>
 <!-- SESSION BANNER -->
-<div id="session-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0d1525;border-top:1px solid var(--border);padding:.55rem 1.2rem;font-size:.75rem;color:var(--muted);z-index:300;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+<div id="session-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0d1525;border-top:1px solid var(--border);padding:.55rem 1.2rem;font-size:.75rem;color:var(--muted);z-index:300;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
   <span>🔒 Esta web usa almacenamiento local solo para gestionar tu sesión. No hay cookies de seguimiento ni publicidad.</span>
   <button onclick="dismissBanner()" style="background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.2rem .7rem;font-size:.75rem;cursor:pointer;white-space:nowrap">Entendido</button>
 </div>
