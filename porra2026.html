@@ -32,10 +32,19 @@ window._sbLoaded = false;
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
 header{background:linear-gradient(135deg,#08101e,#160810);border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100}
-.header-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:.45rem 1.2rem;gap:.5rem}
-.header-nav{display:flex;align-items:center;gap:.15rem;flex:1;justify-content:center;flex-wrap:wrap}
-.header-right{display:flex;align-items:center;gap:.4rem;flex-shrink:0}
-.header-deadline{padding:.2rem 1.2rem;border-top:1px solid rgba(255,255,255,.05)}
+.header-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:.45rem 1rem;gap:.4rem}
+.header-nav{display:flex;align-items:center;gap:.1rem;flex:1;justify-content:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.header-nav::-webkit-scrollbar{display:none}
+.header-right{display:flex;align-items:center;gap:.3rem;flex-shrink:0}
+.header-deadline{padding:.2rem 1rem;border-top:1px solid rgba(255,255,255,.05)}
+@media(max-width:560px){
+  .header-top{grid-template-columns:auto auto;grid-template-rows:auto auto;padding:.4rem .75rem .2rem}
+  .header-nav{grid-column:1/-1;order:3;justify-content:flex-start;padding:.2rem 0 .3rem;gap:.05rem;border-top:1px solid rgba(255,255,255,.07);margin-top:.15rem}
+  .header-right{margin-left:auto}
+  .logo{font-size:.9rem}
+  .nav-btn{font-size:.72rem;padding:.28rem .4rem}
+  .lang-sel{width:2.8rem;font-size:.7rem}
+}
 .logo{font-family:"Bebas Neue",sans-serif;font-size:1.55rem;letter-spacing:2px;white-space:nowrap}
 .logo span{color:var(--accent)}
 .nav{display:flex;gap:.2rem;align-items:center;flex-wrap:wrap}
@@ -183,7 +192,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.0.4</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.0.5</span></div>
     <div class="header-nav">
       <button class="nav-btn" id="tab-ranking" onclick="showPage('ranking')">🏆 <span id="lbl-ranking">Clasificación</span></button>
       <button class="nav-btn" id="tab-porras" onclick="showPage('porras')">📋 <span id="lbl-mis-porras">Mis Porras</span></button>
@@ -570,8 +579,7 @@ async function onAuthChange(user){
     if(avatarEl&&user.user_metadata?.avatar_url){avatarEl.src=user.user_metadata.avatar_url;avatarEl.style.display='';}
     const menuEmail=document.getElementById('user-menu-email');
     if(menuEmail)menuEmail.textContent=user.email;
-    const menuAdmin=document.getElementById('user-menu-admin');
-    if(menuAdmin)menuAdmin.style.display=isAdmin?'':'none';
+
     const tabAdmin=document.getElementById('tab-admin');
     if(tabAdmin)tabAdmin.style.display=isAdmin?'':'none';
     closeAuthModal();
@@ -1621,7 +1629,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.0.4</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.0.5</div>';
   nc.innerHTML=h;
 }
 function showMsg(id,msg,type){
@@ -1675,13 +1683,11 @@ function showMsg(id,msg,type){
   </div>
 </div>
 <!-- USER MENU -->
-<div id="user-menu" style="display:none;position:fixed;z-index:500;background:var(--surf1);border:1px solid var(--border);border-radius:10px;padding:.5rem;min-width:180px;box-shadow:0 4px 20px rgba(0,0,0,.4)">
-  <div style="padding:.4rem .6rem;font-size:.8rem;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:.3rem" id="user-menu-email"></div>
-  <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:.82rem" onclick="showPage('porras');closeUserMenu()">📋 Mis Porras</button>
-  <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:.82rem" id="user-menu-admin" style="display:none" onclick="showPage('admin');closeUserMenu()">⚙️ Admin</button>
+<div id="user-menu" style="display:none;position:fixed;z-index:500;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:.5rem;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,.8)">
+  <div style="padding:.4rem .6rem;font-size:.78rem;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:.3rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="user-menu-email"></div>
   <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:.82rem;color:#f87171" onclick="logout()">🚪 Cerrar sesión</button>
   <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
-  <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:.75rem;color:#94a3b8;opacity:.6" onclick="deleteAccount()">🗑 Eliminar mi cuenta</button>
+  <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;font-size:.75rem;color:#64748b" onclick="deleteAccount()">🗑 Eliminar mi cuenta</button>
 </div>
 
 </body>
