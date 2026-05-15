@@ -5,6 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Porra Mundial 2026</title>
 <script>
+// Objeto que centraliza la configuración del torneo actual
+let TORNEO_CONFIG = {
+  id: "MUNDIAL_2026", // Identificador para la base de datos
+  nombre: "Mundial 2026",
+  fase_inicial: "r32", // Puede ser 'r32' (Mundiales) u 'oct' (Eurocopas)
+  num_grupos: 12,
+  pasan_terceros: 8,
+  puntuacion: {
+    r32: 1, oct: 1, qf: 1, sf: 1, final: 1, campeon: 3, extras: 3
+  },
+  // Aquí se inyectarán las constantes pesadas (A3, TNAMES, ISO, MS)
+  datos: {
+    grupos: GROUPS,
+    equipos: TNAMES,
+    banderas: ISO,
+    horarios: MS,
+    tabla_terceros: A3
+  }
+};
 // Supabase CDN loader with fallbacks
 window._sbLoaded = false;
 (function() {
@@ -1339,23 +1358,51 @@ function collectPorra(){
   ss('ext-gol',gv);ss('ext-jug',jv);ss('ext-camp',cv);ss('ext-esp',ev);
   d.extras={camp:cv!==''?parseInt(cv):null,esp:ev||null,gol:gv||null,jug:jv||null};return d;
 }
-async function submitPorra(){
-  if(!sb){showMsg('porra-msg','Sin conexión Supabase','err');return;}
-  if(deadlinePassed()&&!isAdmin){showMsg('porra-msg','⛔ El plazo de porras ha cerrado.','err');return;}
-  if(!valKO('sf',2,'val_sf'))return;
-  const fw=document.getElementById('ko_final_1_w')?.value||ls('ko_final_1_w');
-  if(!fw||fw===''){document.getElementById('ko_final_1_w')?.classList.add('invalid');showMsg('porra-msg',t('val_sf'),'err');return;}
-  if(!valExtras())return;
-  const d=collectPorra();if(!d.nombre){showMsg('porra-msg',t('name_req'),'err');tryStep(0);return;}
-  document.getElementById('btn-sub').disabled=true;document.getElementById('sub-spin').style.display='';
-  if(!currentUser){showMsg('porra-msg','Debes iniciar sesión.','err');return;}
-  const{error}=await sb.from('porras').upsert({user_id:currentUser.id,nombre:d.nombre,email:d.email||currentUser.email,data:JSON.stringify(d),puntos:0,updated_at:new Date().toISOString()},{onConflict:'user_id,nombre'});
-  document.getElementById('btn-sub').disabled=false;document.getElementById('sub-spin').style.display='none';
-  if(error)showMsg('porra-msg','Error: '+error.message,'err');
-  else{
-    Object.keys(localStorage).filter(k=>k.startsWith('p_')).forEach(k=>localStorage.removeItem(k));
-    showMsg('porra-msg',t('saved'),'ok');
-    setTimeout(()=>{ showPage('porras'); },1600);
+async function submitPorra() {
+  if (!sb) { showMsg('porra-msg', 'Sin conexión Supabase', 'err'); return; }
+  if (deadlinePassed() && !isAdmin) { showMsg('porra-msg', '⛔ El plazo de porras ha cerrado.', 'err'); return; }
+  
+  // Validaciones de eliminatorias según el paso actual
+  if (!valKO('sf', 2, 'val_sf')) return;
+  const fw = document.getElementById('ko_final_1_w')?.value || ls('ko_final_1_w');
+  if (!fw || fw === '') {
+    document.getElementById('ko_final_1_w')?.classList.add('invalid');
+    showMsg('porra-msg', t('val_sf'), 'err');
+    return;
+  }
+  if (!valExtras()) return;
+
+  const d = collectPorra();
+  if (!d.nombre) { showMsg('porra-msg', t('name_req'), 'err'); tryStep(0); return; }
+  
+  document.getElementById('btn-sub').disabled = true;
+  document.getElementById('sub-spin').style.display = '';
+
+  if (!currentUser) { showMsg('porra-msg', 'Debes iniciar sesión.', 'err'); return; }
+
+  // UPSERT: Guardamos la porra incluyendo el identificador del torneo activo
+  const { error } = await sb.from('porras').upsert({
+    user_id: currentUser.id,
+    torneo_id: TORNEO_CONFIG.id, // Identificador dinámico (MUNDIAL_2026, EURO_2028, etc.)
+    nombre: d.nombre,
+    email: d.email || currentUser.email,
+    data: JSON.stringify(d),
+    puntos: 0,
+    updated_at: new Date().toISOString()
+  }, { 
+    // Ahora el conflicto se controla por usuario, nombre de porra y torneo
+    onConflict: 'user_id,nombre,torneo_id' 
+  });
+
+  document.getElementById('btn-sub').disabled = false;
+  document.getElementById('sub-spin').style.display = 'none';
+
+  if (error) showMsg('porra-msg', 'Error: ' + error.message, 'err');
+  else {
+    // Limpieza de borradores locales
+    Object.keys(localStorage).filter(k => k.startsWith('p_')).forEach(k => localStorage.removeItem(k));
+    showMsg('porra-msg', t('saved'), 'ok');
+    setTimeout(() => { showPage('porras'); }, 1600);
   }
 }
 
@@ -2004,105 +2051,118 @@ function updateDebugBar(){
   if(isAdmin&&localStorage.getItem('debug_started')==='1')bar.classList.add('active');
   else bar.classList.remove('active');
 }
+// Cálculo dinámico de puntos máximos basado en la configuración del torneo
+function calcularMaxPuntos() {
+  const p = TORNEO_CONFIG.puntuacion;
+  // Si el torneo empieza en Ronda de 32, sumamos esos 32 puntos, si no, 0
+  let total = (TORNEO_CONFIG.fase_inicial === 'r32' ? 32 * p.r32 : 0) +
+              16 * p.oct + 8 * p.qf + 4 * p.sf + 2 * p.final + 
+              p.campeon + (3 * p.extras);
+  return total;
+}
 function renderNormas(){
-  const nc=document.getElementById('normas-content');
+  const nc = document.getElementById('normas-content');
   if(!nc){setTimeout(renderNormas,100);return;}
-  const PRICE=5;
-  const whatsapp='https://chat.whatsapp.com/Lr5zzxPFjPdFmlFsoQZ69f';
-  let h='';
-  const section=(icon,title,body)=>'<div class="card" style="margin-bottom:1rem"><div class="card-title">'+icon+' '+title+'</div>'+body+'</div>';
-  const li=(items)=>'<ul style="margin-left:1.2rem;color:var(--text);font-size:.9rem;line-height:1.8">'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul>';
-  const p=(txt)=>'<p style="font-size:.9rem;line-height:1.7;margin-bottom:.6rem">'+txt+'</p>';
-  const tr=(k)=>t(k);  // alias
+  
+  // Usamos el precio definido en el objeto maestro si existe, sino el por defecto
+  const PRICE = TORNEO_CONFIG.precio || 5; 
+  const whatsapp = 'https://chat.whatsapp.com/Lr5zzxPFjPdFmlFsoQZ69f';
+  let h = '';
+  
+  const section = (icon,title,body) => '<div class="card" style="margin-bottom:1rem"><div class="card-title">'+icon+' '+title+'</div>'+body+'</div>';
+  const li = (items) => '<ul style="margin-left:1.2rem;color:var(--text);font-size:.9rem;line-height:1.8">'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul>';
+  const p = (txt) => '<p style="font-size:.9rem;line-height:1.7;margin-bottom:.6rem">'+txt+'</p>';
+  const tr = (k) => t(k); // alias
 
-  // Objetivo
-  h+=section('🎯',tr('n_obj_title'),
-    p(tr('n_obj1'))+
-    p(tr('n_obj2').replace('{price}',PRICE))+
+  // 1. Objetivo (Dinámico con el nombre del torneo)
+  h += section('🎯', tr('n_obj_title'),
+    p(tr('n_obj1').replace('2026', TORNEO_CONFIG.nombre)) + // Reemplaza año/nombre si es necesario
+    p(tr('n_obj2').replace('{price}', PRICE)) +
     p(tr('n_obj3'))
   );
 
-  // Cómo rellenar
-  h+=section('📋',tr('n_how_title'),
-    '<div style="margin-bottom:.75rem">'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.9rem;margin-bottom:.5rem;border-left:3px solid var(--accent)">'+
-    '<strong style="color:var(--accent)">'+tr('n_how1_title')+'</strong><br>'+
-    '<span style="font-size:.87rem;color:var(--muted)">'+tr('n_how1_body')+'</span></div>'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.9rem;margin-bottom:.5rem;border-left:3px solid var(--green)">'+
-    '<strong style="color:var(--green)">'+tr('n_how2_title')+'</strong><br>'+
-    '<span style="font-size:.87rem;color:var(--muted)">'+tr('n_how2_body')+'</span></div>'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.9rem;border-left:3px solid var(--gold)">'+
-    '<strong style="color:var(--gold)">'+tr('n_how3_title')+'</strong><br>'+
-    '<span style="font-size:.87rem;color:var(--muted)">'+tr('n_how3_body')+'</span></div></div>'
+  // 2. Cómo rellenar (Los pasos se mantienen igual pero el contenido es flexible)
+  h += section('📋', tr('n_how_title'),
+    '<div style="margin-bottom:.75rem">' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.9rem;margin-bottom:.5rem;border-left:3px solid var(--accent)">' +
+    '<strong style="color:var(--accent)">' + tr('n_how1_title') + '</strong><br>' +
+    '<span style="font-size:.87rem;color:var(--muted)">' + tr('n_how1_body') + '</span></div>' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.9rem;margin-bottom:.5rem;border-left:3px solid var(--green)">' +
+    '<strong style="color:var(--green)">' + tr('n_how2_title') + '</strong><br>' +
+    '<span style="font-size:.87rem;color:var(--muted)">' + tr('n_how2_body') + '</span></div>' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.9rem;border-left:3px solid var(--gold)">' +
+    '<strong style="color:var(--gold)">' + tr('n_how3_title') + '</strong><br>' +
+    '<span style="font-size:.87rem;color:var(--muted)">' + tr('n_how3_body') + '</span></div></div>'
   );
 
-  // Puntuación
-  h+=section('🏆',tr('n_pts_title'),
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.5rem;margin-bottom:.75rem">'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--green);font-weight:700">0</div><div style="font-size:.78rem;color:var(--muted)">'+tr('n_pts_groups')+'</div></div>'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--green);font-weight:700">1</div><div style="font-size:.78rem;color:var(--muted)">'+tr('n_pts_ko')+'</div></div>'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--gold);font-weight:700">3</div><div style="font-size:.78rem;color:var(--muted)">'+tr('n_pts_champ')+'</div></div>'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--accent);font-weight:700">3</div><div style="font-size:.78rem;color:var(--muted)">'+tr('n_pts_player')+'</div></div>'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--accent);font-weight:700">3</div><div style="font-size:.78rem;color:var(--muted)">'+tr('n_pts_scorer')+'</div></div>'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--accent);font-weight:700">3</div><div style="font-size:.78rem;color:var(--muted)">'+tr('n_pts_spain')+'</div></div>'+
-    '</div>'+
-    '<div style="background:var(--surf3);border-radius:7px;padding:.65rem .75rem;font-size:.82rem;line-height:1.7">'+
-    '📌 '+tr('n_pts_note1')+'<br>'+
-    '📌 '+tr('n_pts_note2')+'<br><br>'+
-    tr('n_pts_max')+'</div>'
+  // 3. Puntuación (Muestra los puntos configurados en TORNEO_CONFIG)
+  const pts = TORNEO_CONFIG.puntuacion;
+  const maxPuntos = calcularMaxPuntos(); // Llamada a la función de cálculo dinámico
+
+  h += section('🏆', tr('n_pts_title'),
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.5rem;margin-bottom:.75rem">' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--green);font-weight:700">0</div><div style="font-size:.78rem;color:var(--muted)">' + tr('n_pts_groups') + '</div></div>' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--green);font-weight:700">' + pts.oct + '</div><div style="font-size:.78rem;color:var(--muted)">' + tr('n_pts_ko') + '</div></div>' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--gold);font-weight:700">' + pts.campeon + '</div><div style="font-size:.78rem;color:var(--muted)">' + tr('n_pts_champ') + '</div></div>' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--accent);font-weight:700">' + pts.extras + '</div><div style="font-size:.78rem;color:var(--muted)">' + tr('n_pts_player') + '</div></div>' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--accent);font-weight:700">' + pts.extras + '</div><div style="font-size:.78rem;color:var(--muted)">' + tr('n_pts_scorer') + '</div></div>' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:1.8rem;color:var(--accent);font-weight:700">' + pts.extras + '</div><div style="font-size:.78rem;color:var(--muted)">' + tr('n_pts_spain') + '</div></div>' +
+    '</div>' +
+    '<div style="background:var(--surf3);border-radius:7px;padding:.65rem .75rem;font-size:.82rem;line-height:1.7">' +
+    '📌 ' + tr('n_pts_note1') + '<br>' +
+    '📌 ' + tr('n_pts_note2') + '<br><br>' +
+    '<strong>Máximo: ' + maxPuntos + ' pts</strong></div>' // Usamos el valor calculado aquí
   );
 
-  // TODO: ejemplo de puntuación
-
-  // Desempates
-  h+=section('⚖️',tr('n_tb_title'),
-    p(tr('n_tb_intro'))+
-    li([tr('n_tb1'),tr('n_tb2'),tr('n_tb3'),tr('n_tb4'),tr('n_tb5')])
+  // 4. Desempates
+  h += section('⚖️', tr('n_tb_title'),
+    p(tr('n_tb_intro')) +
+    li([tr('n_tb1'), tr('n_tb2'), tr('n_tb3'), tr('n_tb4'), tr('n_tb5')])
   );
 
-  // Premios
-  h+=section('💰',tr('n_prizes_title'),
-    p('<strong>'+tr('n_prizes_price').replace('{price}',PRICE)+'</strong>')+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">'+
-    '<div style="background:linear-gradient(135deg,#1a1a00,#2a2200);border:1px solid var(--gold);border-radius:10px;padding:1rem;text-align:center">'+
-    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;color:#ffd700">🥇 '+tr('n_prizes_1st')+'</div>'+
-    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:2.5rem;color:var(--gold)">70%</div>'+
-    '<div style="font-size:.82rem;color:var(--muted)">'+tr('n_prizes_of_total')+'</div></div>'+
-    '<div style="background:linear-gradient(135deg,#0a1a0a,#0a2a0a);border:1px solid #c0c0c0;border-radius:10px;padding:1rem;text-align:center">'+
-    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;color:#c0c0c0">🥈 '+tr('n_prizes_2nd')+'</div>'+
-    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:2.5rem;color:#c0c0c0">30%</div>'+
-    '<div style="font-size:.82rem;color:var(--muted)">'+tr('n_prizes_of_total')+'</div></div>'+
-    '</div>'+
-    '<div style="background:var(--surf2);border-radius:8px;padding:.8rem;font-size:.84rem">'+
-    '<strong>'+tr('n_prizes_ties')+'</strong><br>'+
-    '• '+tr('n_prizes_tie1')+'<br>'+
-    '• '+tr('n_prizes_tie2')+'<br><br>'+
-    '<strong>'+tr('n_prizes_ex')+'</strong></div>'
+  // 5. Premios (Dinámico con el precio)
+  h += section('💰', tr('n_prizes_title'),
+    p('<strong>' + tr('n_prizes_price').replace('{price}', PRICE) + '</strong>') +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">' +
+    '<div style="background:linear-gradient(135deg,#1a1a00,#2a2200);border:1px solid var(--gold);border-radius:10px;padding:1rem;text-align:center">' +
+    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;color:#ffd700">🥇 ' + tr('n_prizes_1st') + '</div>' +
+    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:2.5rem;color:var(--gold)">70%</div>' +
+    '<div style="font-size:.82rem;color:var(--muted)">' + tr('n_prizes_of_total') + '</div></div>' +
+    '<div style="background:linear-gradient(135deg,#0a1a0a,#0a2a0a);border:1px solid #c0c0c0;border-radius:10px;padding:1rem;text-align:center">' +
+    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;color:#c0c0c0">🥈 ' + tr('n_prizes_2nd') + '</div>' +
+    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:2.5rem;color:#c0c0c0">30%</div>' +
+    '<div style="font-size:.82rem;color:var(--muted)">' + tr('n_prizes_of_total') + '</div></div>' +
+    '</div>' +
+    '<div style="background:var(--surf2);border-radius:8px;padding:.8rem;font-size:.84rem">' +
+    '<strong>' + tr('n_prizes_ties') + '</strong><br>' +
+    '• ' + tr('n_prizes_tie1') + '<br>' +
+    '• ' + tr('n_prizes_tie2') + '<br><br>' +
+    '<strong>' + tr('n_prizes_ex') + '</strong></div>'
   );
 
-  // Normas generales
-  h+=section('📌',tr('n_rules_title'),
-    li([tr('n_rules1'),tr('n_rules2'),tr('n_rules3'),tr('n_rules4')])
+  // 6. Normas generales
+  h += section('📌', tr('n_rules_title'),
+    li([tr('n_rules1'), tr('n_rules2'), tr('n_rules3'), tr('n_rules4')])
   );
 
-  // Privacidad
-  h+=section('🔒',tr('n_priv_title'),
-    '<div style="font-size:.87rem;line-height:1.75">'+
-    '<p style="margin:0 0 .5rem">'+tr('n_priv_1')+'</p>'+
-    '<p style="margin:0 0 .5rem">'+tr('n_priv_2')+'</p>'+
-    '<p style="margin:0 0 .5rem">'+tr('n_priv_3')+'</p>'+
-    '<p style="margin:0">'+tr('n_priv_4')+'</p>'+
+  // 7. Privacidad
+  h += section('🔒', tr('n_priv_title'),
+    '<div style="font-size:.87rem;line-height:1.75">' +
+    '<p style="margin:0 0 .5rem">' + tr('n_priv_1') + '</p>' +
+    '<p style="margin:0 0 .5rem">' + tr('n_priv_2') + '</p>' +
+    '<p style="margin:0 0 .5rem">' + tr('n_priv_3') + '</p>' +
+    '<p style="margin:0">' + tr('n_priv_4') + '</p>' +
     '</div>'
   );
 
-  // WhatsApp
-  h+=section('💬',tr('n_wa_title'),
-    p(tr('n_wa_body'))+
-    '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
+  // 8. WhatsApp
+  h += section('💬', tr('n_wa_title'),
+    p(tr('n_wa_body')) +
+    '<a href="' + whatsapp + '" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 ' + tr('n_wa_btn') + '</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.20</div>';
-  nc.innerHTML=h;
+  h += '<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">' + TORNEO_CONFIG.id + ' v1.2.20</div>';
+  nc.innerHTML = h;
 }
 // ══ HISTORIAL RANKING ══
 async function guardarHistorial(){
