@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.18</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.20</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -860,7 +860,7 @@ async function onAuthChange(user){
     if(menuEmail)menuEmail.textContent=user.email;
 
     const tabAdmin=document.getElementById('tab-admin');
-    if(tabAdmin)tabAdmin.style.display=isAdmin?'':'none';
+    if(tabAdmin)tabAdmin.style.display=(isAdmin||localStorage.getItem('debug_started')==='1')?'':'none';
     updateDebugBar();
     closeAuthModal();
     // Reload current page if it's porras
@@ -977,7 +977,7 @@ document.addEventListener('click',e=>{
 
 function showPage(id){
   if((id==='porras'||id==='porra')&&!currentUser){openAuthModal();return;}
-  if(id==='admin'&&!isAdmin)return;
+  if(id==='admin'&&!isAdmin&&localStorage.getItem('debug_started')!=='1')return;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id)?.classList.add('active');
@@ -995,7 +995,7 @@ function showPage(id){
   if(id==='simulador'){if(deadlinePassed())loadSimulador();else{const el=document.getElementById('sim-ko-content');if(el)el.innerHTML='<div class="alert ainfo">'+t('sim_pending')+'</div>';}}
 }
 
-function tryAdmin(){if(isAdmin)showPage('admin');}
+function tryAdmin(){if(isAdmin||localStorage.getItem('debug_started')==='1')showPage('admin');}
 
 
 // ══ STEPS ══
@@ -1560,6 +1560,71 @@ function admSec(sec,btn){
   if(sec==='muro'){ac.innerHTML='<div class="spin"></div>';loadAdmMuro(ac);return;}
   if(sec==='debug'){const on=localStorage.getItem('debug_started')==='1';ac.innerHTML='<div class="card" style="max-width:420px"><div class="card-title">🧪 Simulación</div><p class="hint" style="margin-bottom:.9rem">Activa para que la app se comporte como si el Mundial hubiera comenzado (útil para probar el comparador, clasificación, etc.).</p><button class="btn '+(on?'btn-primary':'btn-ghost')+'" onclick="toggleDebug();admSec(\'debug\',document.querySelector(\'.stab.active\'))">🧪 '+(on?'✅ Activado — Desactivar':'Activar simulación')+'</button></div>';}
 }
+// R32 bracket slot definitions for Admin/Simulator
+const ADM_R32_DEFS={
+  r32_1: {h:[16,17,18,19], a:null},  // 1ºE vs Mejor3º
+  r32_2: {h:[32,33,34,35], a:null},  // 1ºI vs Mejor3º
+  r32_3: {h:[0,1,2,3],     a:[4,5,6,7]},    // 2ºA vs 2ºB
+  r32_4: {h:[20,21,22,23], a:[8,9,10,11]},  // 1ºF vs 2ºC
+  r32_5: {h:[40,41,42,43], a:[44,45,46,47]},// 2ºK vs 2ºL
+  r32_6: {h:[28,29,30,31], a:[36,37,38,39]},// 1ºH vs 2ºJ
+  r32_7: {h:[12,13,14,15], a:null},  // 1ºD vs Mejor3º
+  r32_8: {h:[24,25,26,27], a:null},  // 1ºG vs Mejor3º
+  r32_9: {h:[8,9,10,11],   a:[20,21,22,23]},// 1ºC vs 2ºF
+  r32_10:{h:[16,17,18,19], a:[32,33,34,35]},// 2ºE vs 2ºI
+  r32_11:{h:[0,1,2,3],     a:null},  // 1ºA vs Mejor3º
+  r32_12:{h:[44,45,46,47], a:null},  // 1ºL vs Mejor3º
+  r32_13:{h:[36,37,38,39], a:[28,29,30,31]},// 1ºJ vs 2ºH
+  r32_14:{h:[12,13,14,15], a:[24,25,26,27]},// 2ºD vs 2ºG
+  r32_15:{h:[4,5,6,7],     a:null},  // 1ºB vs Mejor3º
+  r32_16:{h:[40,41,42,43], a:null},  // 1ºK vs Mejor3º
+};
+
+function admMakeOpts(teams, allT, usedSet, exceptVal){
+  // teams: array of indices, or null = all 48
+  // usedSet: Set of already-used team indices
+  // exceptVal: current value of this select (don't exclude it)
+  const list=teams||Array.from({length:48},(_,i)=>i);
+  let o='<option value="">--</option>';
+  list.forEach(i=>{
+    if(usedSet.has(i)&&i!==exceptVal)return; // skip used teams
+    o+='<option value="'+i+'">'+allT[i]+'</option>';
+  });
+  return o;
+}
+
+function admGetUsedTeams(){
+  const used=new Set();
+  for(let i=1;i<=16;i++){
+    const h=document.getElementById('adm_r32_'+i+'_h')?.value;
+    const a=document.getElementById('adm_r32_'+i+'_a')?.value;
+    if(h&&h!=='')used.add(parseInt(h));
+    if(a&&a!=='')used.add(parseInt(a));
+  }
+  return used;
+}
+
+function admRefreshR32Selects(){
+  // Re-render R32 selects filtering out already-used teams
+  const allT=TNAMES[LANG]||TNAMES.es;
+  for(let i=1;i<=16;i++){
+    const slot='r32_'+i;
+    const def=ADM_R32_DEFS[slot];
+    const hEl=document.getElementById('adm_'+slot+'_h');
+    const aEl=document.getElementById('adm_'+slot+'_a');
+    if(!hEl||!aEl)continue;
+    const hCur=hEl.value?parseInt(hEl.value):null;
+    const aCur=aEl.value?parseInt(aEl.value):null;
+    const used=admGetUsedTeams();
+    // Rebuild h options
+    hEl.innerHTML=admMakeOpts(def.h,allT,used,hCur);
+    if(hCur!=null)hEl.value=hCur;
+    // Rebuild a options
+    aEl.innerHTML=admMakeOpts(def.a,allT,used,aCur);
+    if(aCur!=null)aEl.value=aCur;
+  }
+}
+
 async function buildAdmBracket(container){
   const allT=TNAMES[LANG]||TNAMES.es,opts='<option value="">--</option>'+allT.map((nm,i)=>'<option value="'+i+'">'+nm+'</option>').join('');
   let saved={ko:{},extras:{}};
@@ -1573,7 +1638,17 @@ async function buildAdmBracket(container){
       h+='<div class="bracket-wrap">';
       [[1,half],[half+1,r.n]].forEach(([from,to],hi)=>{
         h+='<div class="bracket-half"><div class="bh-title">'+(hi===0?t('left_half'):t('right_half'))+'</div><div class="adm-ko-grid">';
-        for(let i=from;i<=to;i++){const k=r.p+'_'+i;h+='<div class="adm-kom"><div class="kolbl">'+r.p.toUpperCase()+'-'+i+'</div><div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admPropAndUpdateWinners()">'+opts+'</select><span style="color:var(--muted);font-size:.68rem">vs</span><select id="adm_'+k+'_a" onchange="admPropAndUpdateWinners()">'+opts+'</select></div><div class="adm-win-row">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admPropAndUpdateWinners()"><option value="">--</option></select></div></div>';}
+        for(let i=from;i<=to;i++){
+          const k=r.p+'_'+i;
+          // For R32: use filtered options per slot; for other rounds: use full opts
+          let hOpts=opts,aOpts=opts;
+          if(r.p==='r32'){
+            const def=ADM_R32_DEFS[k];
+            hOpts=admMakeOpts(def?def.h:null,allT,new Set(),-1);
+            aOpts=admMakeOpts(def?def.a:null,allT,new Set(),-1);
+          }
+          h+='<div class="adm-kom"><div class="kolbl">'+r.p.toUpperCase()+'-'+i+'</div><div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+hOpts+'</select><span style="color:var(--muted);font-size:.68rem">vs</span><select id="adm_'+k+'_a" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+aOpts+'</select></div><div class="adm-win-row">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admPropAndUpdateWinners()"><option value="">--</option></select></div></div>';
+        }
         h+='</div></div>';
       });
       h+='</div>';
@@ -1589,6 +1664,7 @@ async function buildAdmBracket(container){
     const sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};sv('adm_ext_camp',saved.extras?.camp);sv('adm_ext_esp',saved.extras?.esp);
     const si=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};si('adm_ext_gol',saved.extras?.gol);si('adm_ext_jug',saved.extras?.jug);
     admProp();
+    admRefreshR32Selects();
   },0);
 }
 function admProp(){
@@ -2025,7 +2101,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.18</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.20</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
