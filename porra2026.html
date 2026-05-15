@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.26</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.27</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1636,12 +1636,28 @@ function admRefreshR32Selects(){
   }
 }
 
+
+const ADM_OCT_FEEDS={oct_1:['r32_1','r32_2'],oct_2:['r32_3','r32_4'],oct_3:['r32_5','r32_6'],oct_4:['r32_7','r32_8'],oct_5:['r32_9','r32_10'],oct_6:['r32_11','r32_12'],oct_7:['r32_13','r32_14'],oct_8:['r32_15','r32_16']};
+const ADM_QF_FEEDS={qf_1:['oct_1','oct_2'],qf_2:['oct_3','oct_4'],qf_3:['oct_5','oct_6'],qf_4:['oct_7','oct_8']};
+const ADM_SF_FEEDS={sf_1:['qf_1','qf_2'],sf_2:['qf_3','qf_4']};
 async function buildAdmBracket(container){
   const allT=TNAMES[LANG]||TNAMES.es,opts='<option value="">--</option>'+allT.map((nm,i)=>'<option value="'+i+'">'+nm+'</option>').join('');
   let saved={ko:{},extras:{}};
   if(sb){const{data}=await sb.from('resultados').select('data').eq('id',1).single();if(data)saved=JSON.parse(data.data);}
   const rounds=[{lbl:'RONDA DE 32',n:16,p:'r32'},{lbl:'OCTAVOS',n:8,p:'oct'},{lbl:'CUARTOS',n:4,p:'qf'},{lbl:'SEMIFINALES',n:2,p:'sf'},{lbl:'FINAL',n:1,p:'fin'}];
   let h='<div class="alert ainfo">Rellena los equipos de cada cruce y selecciona el ganador. Las rondas siguientes se propagan automáticamente.</div>';
+  function admFeedSlot(p,i){
+    if(p==='oct')return ADM_OCT_FEEDS['oct_'+i];
+    if(p==='qf')return ADM_QF_FEEDS['qf_'+i];
+    if(p==='sf')return ADM_SF_FEEDS['sf_'+i];
+    if(p==='fin')return['sf_1','sf_2'];
+    return null;
+  }
+  function admGetWinner(slot){
+    const el=document.getElementById('adm_'+slot+'_w');
+    return el&&el.value!==''?parseInt(el.value):null;
+  }
+
   rounds.forEach(r=>{
     const half=Math.ceil(r.n/2);
     h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.88rem;color:var(--green);margin:.85rem 0 .38rem;letter-spacing:1px">'+r.lbl+'</div>';
@@ -1651,14 +1667,29 @@ async function buildAdmBracket(container){
         h+='<div class="bracket-half"><div class="bh-title">'+(hi===0?t('left_half'):t('right_half'))+'</div><div class="adm-ko-grid">';
         for(let i=from;i<=to;i++){
           const k=r.p+'_'+i;
-          // For R32: use filtered options per slot; for other rounds: use full opts
-          let hOpts=opts,aOpts=opts;
           if(r.p==='r32'){
+            // R32: filtered selects per group
             const def=ADM_R32_DEFS[k];
-            hOpts=admMakeOpts(def?def.h:null,allT,new Set(),-1);
-            aOpts=admMakeOpts(def?def.a:null,allT,new Set(),-1);
+            const hOpts=admMakeOpts(def?def.h:null,allT,new Set(),-1);
+            const aOpts=admMakeOpts(def?def.a:null,allT,new Set(),-1);
+            const lbl=(def?def.hl+'vs'+def.al:'');
+            h+='<div class="adm-kom"><div class="kolbl">R32-'+i+(def?' <span style="font-size:.68rem;color:var(--muted);font-weight:400">'+def.hl+' vs '+def.al+'</span>':'')+'</div>'
+              +'<div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+hOpts+'</select>'
+              +'<span style="color:var(--muted);font-size:.68rem">vs</span>'
+              +'<select id="adm_'+k+'_a" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+aOpts+'</select></div>'
+              +'<div class="adm-win-row" id="adm-win-row-'+k+'">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admPropAndUpdateWinners()"><option value="">--</option></select></div></div>';
+          } else {
+            // Oct+: show team labels (auto from prev round) + winner select
+            const feeds=admFeedSlot(r.p,i)||[];
+            h+='<div class="adm-kom"><div class="kolbl">'+r.p.toUpperCase()+'-'+i+'</div>'
+              +'<div class="adm-ko-row" id="adm-teams-'+k+'">'
+              +'<span id="adm_'+k+'_hl" style="flex:1;font-size:.82rem;color:var(--muted);padding:.2rem .3rem">'+t('tbd')+'</span>'
+              +'<span style="color:var(--muted);font-size:.68rem">vs</span>'
+              +'<span id="adm_'+k+'_al" style="flex:1;font-size:.82rem;color:var(--muted);padding:.2rem .3rem;text-align:right">'+t('tbd')+'</span>'
+              +'<input type="hidden" id="adm_'+k+'_h"><input type="hidden" id="adm_'+k+'_a">'
+              +'</div>'
+              +'<div class="adm-win-row" id="adm-win-row-'+k+'">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admPropAndUpdateWinners()"><option value="">--</option></select></div></div>';
           }
-          h+='<div class="adm-kom"><div class="kolbl">'+r.p.toUpperCase()+'-'+i+(r.p==="r32"&&ADM_R32_DEFS['r32_'+i]?' <span style="font-size:.68rem;color:var(--muted);font-weight:400">'+(ADM_R32_DEFS['r32_'+i].hl||'?')+' vs '+(ADM_R32_DEFS['r32_'+i].al||'?')+'</span>':'')+'</div><div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+hOpts+'</select><span style="color:var(--muted);font-size:.68rem">vs</span><select id="adm_'+k+'_a" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+aOpts+'</select></div><div class="adm-win-row">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admPropAndUpdateWinners()"><option value="">--</option></select></div></div>';
         }
         h+='</div></div>';
       });
@@ -1690,23 +1721,46 @@ function admProp(){
 }
 function admPropAndUpdateWinners(){
   admProp();
-  // Update winner selects to only show the two teams of each match
-  const rounds=[{n:16,p:'r32'},{n:8,p:'oct'},{n:4,p:'qf'},{n:2,p:'sf'},{n:1,p:'fin'}];
   const allT=TNAMES[LANG]||TNAMES.es;
-  rounds.forEach(r=>{
-    for(let i=1;i<=r.n;i++){
-      const k=r.p+'_'+i;
+  // Update R32 winner selects
+  for(let i=1;i<=16;i++){
+    const k='r32_'+i;
+    const hEl=document.getElementById('adm_'+k+'_h');
+    const aEl=document.getElementById('adm_'+k+'_a');
+    const wEl=document.getElementById('adm_'+k+'_w');
+    if(!wEl)continue;
+    const hv=hEl?.value,av=aEl?.value;
+    const curW=wEl.value;
+    wEl.innerHTML='<option value="">--</option>';
+    if(hv&&hv!==''&&!isNaN(parseInt(hv))){const o=document.createElement('option');o.value=hv;o.textContent=tn(parseInt(hv));wEl.appendChild(o);}
+    if(av&&av!==''&&!isNaN(parseInt(av))){const o=document.createElement('option');o.value=av;o.textContent=tn(parseInt(av));wEl.appendChild(o);}
+    if(curW&&(curW===hv||curW===av))wEl.value=curW;
+  }
+  // Update Oct/QF/SF/Fin — team labels and winner selects from prev round winners
+  [{n:8,p:'oct',feeds:ADM_OCT_FEEDS},{n:4,p:'qf',feeds:ADM_QF_FEEDS},{n:2,p:'sf',feeds:ADM_SF_FEEDS},{n:1,p:'fin',feeds:{fin_1:['sf_1','sf_2']}}].forEach(({n,p,feeds})=>{
+    for(let i=1;i<=n;i++){
+      const k=p+'_'+i;
+      const fds=feeds[k]||[];
+      const hw=fds[0]?document.getElementById('adm_'+fds[0]+'_w')?.value:null;
+      const aw=fds[1]?document.getElementById('adm_'+fds[1]+'_w')?.value:null;
+      // Update hidden h/a inputs
       const hEl=document.getElementById('adm_'+k+'_h');
       const aEl=document.getElementById('adm_'+k+'_a');
+      if(hEl&&hw!=null&&hw!=='')hEl.value=hw; else if(hEl)hEl.value='';
+      if(aEl&&aw!=null&&aw!=='')aEl.value=aw; else if(aEl)aEl.value='';
+      // Update team labels
+      const hlEl=document.getElementById('adm_'+k+'_hl');
+      const alEl=document.getElementById('adm_'+k+'_al');
+      if(hlEl)hlEl.textContent=hw&&hw!==''?tn(parseInt(hw)):t('tbd');
+      if(alEl)alEl.textContent=aw&&aw!==''?tn(parseInt(aw)):t('tbd');
+      // Update winner select with only the 2 teams
       const wEl=document.getElementById('adm_'+k+'_w');
       if(!wEl)continue;
-      const hv=hEl?.value,av=aEl?.value;
       const curW=wEl.value;
       wEl.innerHTML='<option value="">--</option>';
-      if(hv&&hv!==''&&!isNaN(parseInt(hv))){const hi=parseInt(hv);const o=document.createElement('option');o.value=hv;o.textContent=tn(hi);wEl.appendChild(o);}
-      if(av&&av!==''&&!isNaN(parseInt(av))){const ai=parseInt(av);const o=document.createElement('option');o.value=av;o.textContent=tn(ai);wEl.appendChild(o);}
-      // Restore previous selection if still valid
-      if(curW&&(curW===hv||curW===av))wEl.value=curW;
+      if(hw&&hw!==''&&!isNaN(parseInt(hw))){const o=document.createElement('option');o.value=hw;o.textContent=tn(parseInt(hw));wEl.appendChild(o);}
+      if(aw&&aw!==''&&!isNaN(parseInt(aw))){const o=document.createElement('option');o.value=aw;o.textContent=tn(parseInt(aw));wEl.appendChild(o);}
+      if(curW&&(curW===hw||curW===aw))wEl.value=curW;
     }
   });
   // Auto-fill Campeón from Final winner
@@ -2138,7 +2192,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.26</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.27</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
