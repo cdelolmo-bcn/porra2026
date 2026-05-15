@@ -726,7 +726,6 @@ function waitAndLoad(attempts){
   initSupabase();
 }
 let _sbInitialized=false;
-let _authChangeLock=false;
 function initSupabase(){
   if(window._sbLoadFailed){
     const rc=document.getElementById('rank-container');
@@ -744,23 +743,24 @@ function initSupabase(){
       auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}
     });
     // ── Escuchador global de sesión ──
+    // No usamos lock — cada evento se procesa independientemente.
+    // onAuthChange es idempotente (solo actualiza UI), no hay riesgo de carrera real.
     sb.auth.onAuthStateChange(async(event,session)=>{
-      if(_authChangeLock)return;
-      _authChangeLock=true;
-      try{
-        currentUser=session?.user||null;
-        if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
-          if(window.location.hash.includes('access_token'))
-            history.replaceState(null,'',window.location.pathname+window.location.search);
-          await onAuthChange(currentUser);
-        }else if(event==='SIGNED_OUT'){
-          await onAuthChange(null);
-        }
-      }finally{_authChangeLock=false;}
+      const user=session?.user||null;
+      if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
+        currentUser=user;
+        if(window.location.hash.includes('access_token'))
+          history.replaceState(null,'',window.location.pathname+window.location.search);
+        await onAuthChange(currentUser);
+      }else if(event==='INITIAL_SESSION'){
+        // Solo procesar INITIAL_SESSION si hay usuario (evita sobrescribir login en curso)
+        if(user){currentUser=user;await onAuthChange(currentUser);}
+      }else if(event==='SIGNED_OUT'){
+        currentUser=null;
+        await onAuthChange(null);
+      }
     });
-    sb.auth.getSession().then(async({data:{session}})=>{
-      if(!currentUser&&session?.user){currentUser=session.user;await onAuthChange(currentUser);}
-    });
+    // loadRanking e initMuro son públicos — no esperan a la sesión
     loadRanking();
     initMuro();
   }catch(e){console.error('Supabase init error:',e);}
@@ -2133,15 +2133,156 @@ function showBannerIfNeeded(){
 function dismissBanner(){
   localStorage.setItem('banner_dismissed','1');var b=document.getElementById('session-banner');if(b)b.style.display='none';
 }
-function loadSimulador(){
-  var el=document.getElementById('sim-ko-content');
-  if(el)el.innerHTML='<div class="alert ainfo">El simulador estará disponible cuando el torneo comience.</div>';
+// ── SIMULADOR ──────────────────────────────────────────────────────────────
+let _simRealData=null; // resultados reales cargados
+let _simOverrides={}; // hipótesis del usuario: {ko_key: teamIdx}
+
+async function loadSimulador(){
+  const el=document.getElementById('sim-ko-content');
+  if(!el)return;
+  if(!sb){el.innerHTML='<div class="alert aerr">Sin conexión.</div>';return;}
+  el.innerHTML='<div class="spin" style="margin:1.5rem auto;display:block"></div>';
+  const{data,error}=await sb.from('resultados').select('data').eq('id',1).single();
+  if(error||!data){
+    el.innerHTML='<div class="alert ainfo">⚠️ No hay resultados oficiales cargados aún. El administrador debe guardar al menos un resultado desde el panel de admin.</div>';
+    return;
+  }
+  _simRealData=JSON.parse(data.data);
+  _simOverrides={};
+  renderSimulador();
 }
-function ejecutarSimulacion(){
-  showConfirmModal('Simulador','El simulador completo estará disponible durante el torneo.',function(){});
+
+function renderSimulador(){
+  const el=document.getElementById('sim-ko-content');
+  if(!el||!_simRealData)return;
+  const rk=_simRealData.ko||{};
+
+  // Fases KO en orden
+  const fases=[
+    {key:'r32',label:'Ronda de 32',slots:16},
+    {key:'oct',label:'Octavos',slots:8},
+    {key:'qf',label:'Cuartos',slots:4},
+    {key:'sf',label:'Semis',slots:2},
+    {key:'final',label:'Final',slots:1},
+  ];
+
+  // Equipos disponibles en cada fase (ganadores confirmados de la fase anterior)
+  // Para el simulador solo mostramos los cruces donde el ganador real NO está definido aún
+  let pendientes=[];
+  for(const fase of fases){
+    for(let i=1;i<=fase.slots;i++){
+      const key=fase.key+'_'+i;
+      if(rk[key]==null){
+        // Necesitamos saber qué equipos se enfrentan en este cruce
+        // Usamos los ganadores reales de la fase anterior como referencia
+        pendientes.push({fase:fase.label,key,faseKey:fase.key,slot:i});
+      }
+    }
+  }
+
+  if(!pendientes.length){
+    el.innerHTML='<div class="alert aok">✅ Todos los resultados KO están completos. No hay partidos pendientes para simular.</div>';
+    return;
+  }
+
+  // Obtener todos los equipos que han llegado a cada fase
+  // Construir listas de equipos por fase a partir de los datos reales
+  function getTeamsForFase(faseKey){
+    // Ganadores de la fase anterior son los equipos de esta fase
+    const prev={r32:'grupos',oct:'r32',qf:'oct',sf:'qf',final:'sf'};
+    const prevKey=prev[faseKey];
+    if(!prevKey||prevKey==='grupos') return null; // demasiado complejo para r32
+    const teams=[];
+    const slots={r32:16,oct:16,qf:8,sf:4,final:2}; // ganadores de fase anterior
+    const prevSlots=slots[prevKey]||16;
+    for(let i=1;i<=prevSlots;i++){
+      const t=rk[prevKey+'_'+i];
+      if(t!=null)teams.push(t);
+    }
+    return teams.length?teams:null;
+  }
+
+  let h='<div style="margin-bottom:.75rem;font-size:.82rem;color:var(--muted)">Elige el ganador hipotético de los cruces pendientes y pulsa <strong>Calcular ranking teórico</strong>.</div>';
+
+  let lastFase='';
+  for(const p of pendientes){
+    if(p.fase!==lastFase){
+      h+='<div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.9rem 0 .4rem">'+p.fase+'</div>';
+      lastFase=p.fase;
+    }
+    const teams=getTeamsForFase(p.faseKey);
+    const override=_simOverrides[p.key];
+    h+='<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;flex-wrap:wrap">';
+    h+='<span style="font-size:.72rem;color:var(--muted);min-width:60px">'+p.faseKey.toUpperCase()+'-'+p.slot+'</span>';
+    h+='<select style="flex:1;max-width:220px;background:var(--surf2);border:1px solid '+(override!=null?'var(--accent)':'var(--border)')+';color:var(--text);border-radius:6px;padding:.28rem .5rem;font-size:.82rem" onchange="_simOverrides[''+p.key+'']=this.value===''?null:parseInt(this.value);renderSimulador()">';
+    h+='<option value="">— '+t('sel_win')+' —</option>';
+    if(teams){
+      for(const ti of teams){
+        h+='<option value="'+ti+'"'+(override==ti?' selected':'')+'">'+fi(ti,true)+' '+tn(ti)+'</option>';
+      }
+    } else {
+      // r32: listar todos los equipos
+      for(let ti=0;ti<48;ti++){
+        h+='<option value="'+ti+'"'+(override==ti?' selected':'')+'">'+fi(ti,true)+' '+tn(ti)+'</option>';
+      }
+    }
+    h+='</select></div>';
+  }
+
+  el.innerHTML=h;
 }
+
+async function ejecutarSimulacion(){
+  if(!_simRealData){await loadSimulador();if(!_simRealData)return;}
+  if(!sb)return;
+
+  // Construir datos reales + overrides
+  const simReal=JSON.parse(JSON.stringify(_simRealData));
+  const rk=simReal.ko||{};
+  Object.entries(_simOverrides).forEach(([k,v])=>{if(v!=null)rk[k]=parseInt(v);});
+  simReal.ko=rk;
+
+  // Cargar todas las porras pagadas
+  const{data:porras,error}=await sb.from('porras').select('nombre,puntos,data').eq('paid',true);
+  if(error||!porras?.length){
+    document.getElementById('sim-result-card').style.display='none';
+    showConfirmModal('⚠️ Sin datos','No hay porras pagadas para simular.',()=>{});
+    return;
+  }
+
+  // Calcular puntuación simulada
+  const ranked=porras.map(p=>{
+    let pdata={};
+    try{pdata=JSON.parse(p.data||'{}');}catch(e){}
+    const pts=calcScore(pdata,simReal);
+    return{nombre:p.nombre,pts,ptsReal:p.puntos||0};
+  }).sort((a,b)=>b.pts-a.pts);
+
+  // Mostrar ranking simulado
+  const card=document.getElementById('sim-result-card');
+  const out=document.getElementById('sim-ranking-output');
+  let h='<table class="rank-table"><thead><tr><th>#</th><th></th><th>Sim</th><th>Real</th><th>Δ</th></tr></thead><tbody>';
+  ranked.forEach((r,i)=>{
+    const delta=r.pts-r.ptsReal;
+    const dStr=delta>0?'<span style="color:var(--green)">+'+delta+'</span>':delta<0?'<span style="color:var(--accent)">'+delta+'</span>':'<span style="color:var(--muted)">=</span>';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+    h+='<tr><td><span class="rk '+(i<3?'g'+(i+1):'')+'">'+medal+'</span></td>'
+      +'<td><strong>'+esc(r.nombre)+'</strong></td>'
+      +'<td><span class="pbadge">'+r.pts+'</span></td>'
+      +'<td style="color:var(--muted);font-size:.8rem">'+r.ptsReal+'</td>'
+      +'<td>'+dStr+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  out.innerHTML=h;
+  card.style.display='';
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function resetSimulacion(){
-  var el=document.getElementById('sim-result-card');if(el)el.style.display='none';
+  _simOverrides={};
+  const card=document.getElementById('sim-result-card');
+  if(card)card.style.display='none';
+  if(_simRealData)renderSimulador();
 }
 function showMsg(id,msg,type){
   const el=document.getElementById(id);if(!el)return;
