@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.25</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.26</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1703,8 +1703,8 @@ function admPropAndUpdateWinners(){
       const hv=hEl?.value,av=aEl?.value;
       const curW=wEl.value;
       wEl.innerHTML='<option value="">--</option>';
-      if(hv&&hv!==''&&!isNaN(parseInt(hv))){const hi=parseInt(hv);const o=document.createElement('option');o.value=hv;o.textContent=fi(hi,true)+' '+tn(hi);wEl.appendChild(o);}
-      if(av&&av!==''&&!isNaN(parseInt(av))){const ai=parseInt(av);const o=document.createElement('option');o.value=av;o.textContent=fi(ai,true)+' '+tn(ai);wEl.appendChild(o);}
+      if(hv&&hv!==''&&!isNaN(parseInt(hv))){const hi=parseInt(hv);const o=document.createElement('option');o.value=hv;o.textContent=tn(hi);wEl.appendChild(o);}
+      if(av&&av!==''&&!isNaN(parseInt(av))){const ai=parseInt(av);const o=document.createElement('option');o.value=av;o.textContent=tn(ai);wEl.appendChild(o);}
       // Restore previous selection if still valid
       if(curW&&(curW===hv||curW===av))wEl.value=curW;
     }
@@ -2138,7 +2138,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.25</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.26</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
