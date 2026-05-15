@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.9</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.1</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -325,8 +325,8 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
   <div class="card">
     <div id="sim-ko-content"><div style="text-align:center;color:var(--muted);padding:2rem">Cargando partidos pendientes...</div></div>
     <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="ejecutarSimulacion()" id="btn-sim">⚡ <span id="lbl-sim-calc">Calcular ranking teórico</span></button>
-      <button class="btn btn-ghost" onclick="resetSimulacion()">↺ <span id="lbl-sim-reset">Resetear</span></button>
+      <button class="btn btn-primary" onclick="ejecutarSimulacion()" id="btn-sim"><span id="lbl-sim-calc">⚡ Calcular ranking teórico</span></button>
+      <button class="btn btn-ghost" onclick="resetSimulacion()"><span id="lbl-sim-reset">↺ Resetear</span></button>
     </div>
   </div>
   <div class="card" id="sim-result-card" style="display:none;border:1px dashed var(--gold)">
@@ -756,8 +756,7 @@ function initSupabase(){
   try{
     // ── Punto único de creación del cliente ──
     sb=window.supabase.createClient(SB_URL,SB_KEY,{
-      auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true,
-        storageKey:'porra2026_auth'}
+      auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}
     });
     // Cliente anónimo para queries públicas — nunca bloqueado por estado de auth
     window._sbAnon=window.supabase.createClient(SB_URL,SB_KEY,{
@@ -1629,7 +1628,8 @@ function newBet(){
 
 // ══ VIEW BET DETAIL ══
 async function viewBetDetail(nombre){
-  let query=sb.from('porras').select('nombre,puntos,paid,updated_at,data,user_id,logros').eq('nombre',nombre);
+  const _db=window._sbAnon||sb;
+  let query=_db.from('porras').select('nombre,puntos,paid,updated_at,data,user_id,logros').eq('nombre',nombre);
   // If viewing own bet, add user_id filter for RLS compliance
   const{data,error}=await query.maybeSingle();
   if(error){console.error('viewBetDetail error:',error.message);showMsg('porra-msg','Error al cargar la porra: '+error.message,'err');return;}
@@ -1761,7 +1761,7 @@ async function searchMyBets(){
   if(!q){loadAllMyBets();return;}
   mc.innerHTML='<div class="spin"></div>';
   // Load all and filter client-side (handles accents, case)
-  const{data,error}=await sb.from('porras').select('nombre,puntos,paid,updated_at,data').order('nombre');
+  const{data,error}=await (window._sbAnon||sb).from('porras').select('nombre,puntos,paid,updated_at,data').order('nombre');
   if(error){c.innerHTML='<div class="alert aerr">'+error.message+'</div>';return;}
   const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   const filtered=(data||[]).filter(r=>norm(r.nombre).includes(norm(q)));
@@ -1963,7 +1963,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.9</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.1</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -2022,7 +2022,8 @@ let _compareTarget=null; // {nombre, data} de la porra rival
 async function openCompare(nombreRival){
   if(!currentUser){openAuthModal();return;}
   // Cargar porra rival
-  const{data:rival,error}=await sb.from('porras').select('nombre,puntos,data').eq('nombre',nombreRival).limit(1).maybeSingle();
+  const _db=window._sbAnon||sb;
+  const{data:rival,error}=await _db.from('porras').select('nombre,puntos,data').eq('nombre',nombreRival).limit(1).maybeSingle();
   if(error||!rival)return;
   _compareTarget=rival;
   // Badge curioso: marcar que el usuario ha usado el comparador
@@ -2222,7 +2223,8 @@ async function loadSimulador(){
   if(!el)return;
   if(!sb){el.innerHTML='<div class="alert aerr">Sin conexión.</div>';return;}
   el.innerHTML='<div class="spin" style="margin:1.5rem auto;display:block"></div>';
-  const{data,error}=await sb.from('resultados').select('data').eq('id',1).single();
+  const _db=window._sbAnon||sb;
+  const{data,error}=await _db.from('resultados').select('data').eq('id',1).single();
   if(error||!data){
     el.innerHTML='<div class="alert ainfo">⚠️ No hay resultados oficiales cargados aún. El administrador debe guardar al menos un resultado desde el panel de admin.</div>';
     return;
@@ -2271,15 +2273,17 @@ function renderSimulador(){
     // Ganadores de la fase anterior son los equipos de esta fase
     const prev={r32:'grupos',oct:'r32',qf:'oct',sf:'qf',final:'sf'};
     const prevKey=prev[faseKey];
-    if(!prevKey||prevKey==='grupos') return null; // demasiado complejo para r32
+    if(!prevKey||prevKey==='grupos') return null; // r32: usar todos los equipos
     const teams=[];
-    const slots={r32:16,oct:16,qf:8,sf:4,final:2}; // ganadores de fase anterior
+    const slots={oct:16,qf:8,sf:4,final:2};
     const prevSlots=slots[prevKey]||16;
     for(let i=1;i<=prevSlots;i++){
-      const t=rk[prevKey+'_'+i];
-      if(t!=null)teams.push(t);
+      const tm=rk[prevKey+'_'+i];
+      if(tm!=null)teams.push(tm);
     }
-    return teams.length?teams:null;
+    // Si no hay equipos reales para esta fase, devolver null
+    // para que el selector muestre todos los equipos (modo debug)
+    return teams.length>=2?teams:null;
   }
 
   let h='<div style="margin-bottom:.75rem;font-size:.82rem;color:var(--muted)">'+t('sim_pick_hint')+'</div>';
@@ -2323,7 +2327,7 @@ async function ejecutarSimulacion(){
   simReal.ko=rk;
 
   // Cargar todas las porras pagadas
-  const{data:porras,error}=await sb.from('porras').select('nombre,puntos,data').eq('paid',true);
+  const{data:porras,error}=await (window._sbAnon||sb).from('porras').select('nombre,puntos,data').eq('paid',true);
   if(error||!porras?.length){
     document.getElementById('sim-result-card').style.display='none';
     showConfirmModal('⚠️ Sin datos','No hay porras pagadas para simular.',()=>{});
