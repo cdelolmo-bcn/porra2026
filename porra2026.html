@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.29</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.30</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1702,9 +1702,19 @@ async function buildAdmBracket(container){
   h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.88rem;color:var(--gold);margin:.85rem 0 .38rem;letter-spacing:1px">EXTRAS</div><div class="extgrid"><div class="extf"><label>🥇 '+t('winner')+'</label><select id="adm_ext_camp"><option value="">--</option>'+opts+'</select></div><div class="extf"><label>'+fi(28,true)+' '+t('spain_pos')+'</label><select id="adm_ext_esp"><option value="">--</option>'+posOpts+'</select></div><div class="extf"><label>⚽ '+t('top_scorer')+'</label><div class="ac-wrap"><input type="text" id="adm_ext_gol" placeholder="'+t('player_hint')+'" oninput="acF(\'adm_ext_gol\')" autocomplete="off"><div class="ac-list" id="ac-adm_ext_gol"></div></div></div><div class="extf"><label>🌟 '+t('best_player')+'</label><div class="ac-wrap"><input type="text" id="adm_ext_jug" placeholder="'+t('player_hint')+'" oninput="acF(\'adm_ext_jug\')" autocomplete="off"><div class="ac-list" id="ac-adm_ext_jug"></div></div></div></div><div style="margin-top:.9rem;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap"><button class="btn btn-primary" id="btn-saveres" onclick="saveAdmRes()">'+t('save_recalc')+'</button><span id="res-spin" style="display:none"><div class="spin"></div></span></div><div id="res-msg" style="margin-top:.7rem"></div>';
   container.innerHTML=h;
   setTimeout(()=>{
-    rounds.forEach(r=>{for(let i=1;i<=r.n;i++){const k=r.p+'_'+i,d=saved.ko?.[k]||{},sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};sv('adm_'+k+'_h',d.h);sv('adm_'+k+'_a',d.a);sv('adm_'+k+'_w',d.w);}});
-    const sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};sv('adm_ext_camp',saved.extras?.camp);sv('adm_ext_esp',saved.extras?.esp);
-    const si=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};si('adm_ext_gol',saved.extras?.gol);si('adm_ext_jug',saved.extras?.jug);
+    // First restore R32 h/a/w values
+    const sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};
+    const si=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+    for(let i=1;i<=16;i++){const k='r32_'+i,d=saved.ko?.[k]||{};sv('adm_'+k+'_h',d.h);sv('adm_'+k+'_a',d.a);sv('adm_'+k+'_w',d.w);}
+    // Then propagate to Oct+ and restore their winners
+    _admPropAndUpdate();
+    // Restore Oct/QF/SF/Fin winners on top of propagated values
+    ['oct','qf','sf'].forEach(p=>{const n={oct:8,qf:4,sf:2}[p];for(let i=1;i<=n;i++){const k=p+'_'+i,d=saved.ko?.[k]||{};sv('adm_'+k+'_w',d.w);}});
+    sv('adm_fin_1_w',saved.ko?.fin_1?.w);
+    // Extras
+    sv('adm_ext_camp',saved.extras?.camp);sv('adm_ext_esp',saved.extras?.esp);
+    si('adm_ext_gol',saved.extras?.gol);si('adm_ext_jug',saved.extras?.jug);
+    // Final propagation to update all winner selects
     _admPropAndUpdate();
     admRefreshR32Selects();
   },0);
@@ -2193,7 +2203,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.29</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.30</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
