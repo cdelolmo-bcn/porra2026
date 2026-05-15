@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.16</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.17</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1440,11 +1440,11 @@ async function loadRanking(){
     let arrow='';
     if(showRank&&prevPos[r.nombre]!=null){
       const diff=prevPos[r.nombre]-rank;
-      if(diff>0)arrow='<span style="color:#4ade80;font-size:.7rem;margin-left:.2rem" title="'+t('rank_arrow_up')+'">▲'+diff+'</span>';
-      else if(diff<0)arrow='<span style="color:#f87171;font-size:.7rem;margin-left:.2rem" title="'+t('rank_arrow_dn')+'">▼'+Math.abs(diff)+'</span>';
-      else arrow='<span style="color:var(--muted);font-size:.7rem;margin-left:.2rem" title="'+t('rank_arrow_eq')+'">=</span>';
+      if(diff>0)arrow='<div style="color:#4ade80;font-size:.6rem;line-height:1;margin-top:.1rem" title="'+t('rank_arrow_up')+'">▲'+diff+'</div>';
+      else if(diff<0)arrow='<div style="color:#f87171;font-size:.6rem;line-height:1;margin-top:.1rem" title="'+t('rank_arrow_dn')+'">▼'+Math.abs(diff)+'</div>';
+      else arrow='<div style="color:var(--muted);font-size:.6rem;line-height:1;margin-top:.1rem" title="'+t('rank_arrow_eq')+'">=</div>';
     }
-    let row='<tr><td style="white-space:nowrap"><span class="rk '+gc+'">'+(showRank?(medal||rank):'—')+'</span>'+arrow+'</td>';
+    let row='<tr><td style="text-align:center;vertical-align:middle"><div style="display:flex;flex-direction:column;align-items:center"><span class="rk '+gc+'">'+(showRank?(medal||rank):'—')+'</span>'+arrow+'</div></td>';
     row+='<td style="white-space:nowrap">'+(deadlinePassed()?'<button class="btn btn-ghost" style="font-size:.82rem;padding:.1rem .4rem;font-weight:700" data-nombre="'+esc(r.nombre)+'" onclick="viewBetDetail(this.getAttribute(\'data-nombre\'))">'+ esc(r.nombre)+'</button>':'<strong>'+esc(r.nombre)+'</strong>')+badgeTip(r.logros)+'</td>';
     row+='<td><span class="pbadge">'+(r.puntos||0)+'</span></td>';
     if(preDeadline)row+='<td>'+(r.paid?'<span class="paid-badge">✓ '+t('rank_confirmed')+'</span>':'<span class="unpaid-badge">'+t('unpaid')+'</span>')+'</td>';
@@ -2025,7 +2025,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.16</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.17</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -2286,10 +2286,17 @@ async function loadSimulador(){
   el.innerHTML='<div class="spin" style="margin:1.5rem auto;display:block"></div>';
   const{data,error}=await dbq(c=>(window._sbAnon||sb).from('resultados').select('data').eq('id',1).single());
   if(error||!data){
-    // Sin datos reales — iniciar con objeto vacío para permitir simulación completa
     _simRealData={ko:{},grupos:{},extras:{}};
   } else {
-    _simRealData=JSON.parse(data.data);
+    const raw=JSON.parse(data.data);
+    // Normalize ko: each slot may be {h,a,w} or just a number — extract winner only
+    const koNorm={};
+    Object.entries(raw.ko||{}).forEach(([k,v])=>{
+      // Rename fin_1 -> final_1
+      const key=k==='fin_1'?'final_1':k;
+      koNorm[key]=(v!=null&&typeof v==='object')?v.w:v;
+    });
+    _simRealData={ko:koNorm,grupos:raw.grupos||{},extras:raw.extras||{}};
   }
   _simOverrides={};
   renderSimulador();
