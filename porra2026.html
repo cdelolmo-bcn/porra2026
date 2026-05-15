@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.10</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.12</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -741,6 +741,22 @@ function waitAndLoad(attempts){
   // Keep for compatibility — delegates to initSupabase
   initSupabase();
 }
+
+async function _anonQ(table, select, filters, order, limit, single=false){
+  console.log('[ANONQ]', table, select, filters, 'limit:', limit, 'single:', single);
+  let url=`${SB_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}`;
+  Object.entries(filters).forEach(([k,v])=>{url+=`&${k}=eq.${encodeURIComponent(v)}`;});
+  if(order)url+=`&order=${order.col}.${order.asc?'asc':'desc'}`;
+  if(limit)url+=`&limit=${limit}`;
+  const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+  if(single)headers['Accept']='application/vnd.pgrst.object+json';
+  try{
+    const r=await fetch(url,{headers});
+    if(!r.ok){const e=await r.json().catch(()=>({}));return{data:null,error:{message:e.message||r.statusText,code:r.status}};}
+    const data=await r.json();
+    return{data,error:null};
+  }catch(e){return{data:null,error:{message:e.message,code:'NETWORK'}};}
+}
 let _sbInitialized=false;
 function initSupabase(){
   if(window._sbLoadFailed){
@@ -753,20 +769,37 @@ function initSupabase(){
     setTimeout(initSupabase,250);return;
   }
   _sbInitialized=true;
+  console.log('[INIT] Creating Supabase client');
   try{
     // ── Punto único de creación del cliente ──
     sb=window.supabase.createClient(SB_URL,SB_KEY,{
       auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}
     });
-    // Cliente anónimo para queries públicas — nunca bloqueado por estado de auth
-    window._sbAnon=window.supabase.createClient(SB_URL,SB_KEY,{
-      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
-    });
+    // Helper para queries públicas usando fetch directo (evita segundo cliente)
+    window._sbAnon={
+      from:(table)=>({
+        select:(cols)=>({
+          eq:(col,val)=>({
+            limit:(n)=>({maybeSingle:()=>_anonQ(table,cols,{[col]:val},null,n,true)}),
+            single:()=>_anonQ(table,cols,{[col]:val},null,1,true),
+            order:(col2,opts)=>_anonQ(table,cols,{[col]:val},{col:col2,asc:opts?.ascending!==false}),
+          }),
+          order:(col2,opts)=>({
+            limit:(n)=>_anonQ(table,cols,{},  {col:col2,asc:opts?.ascending!==false},n),
+            then:(fn)=>_anonQ(table,cols,{},{col:col2,asc:true},80).then(fn),
+          }),
+          limit:(n)=>({maybeSingle:()=>_anonQ(table,cols,{},null,n,true),single:()=>_anonQ(table,cols,{},null,1,true)}),
+          single:()=>_anonQ(table,cols,{},null,1,true),
+        }),
+      }),
+    };
     window._sbReady=true;
+    console.log('[INIT] sb created, _sbAnon ready');
     // ── Escuchador global de sesión ──
     // No usamos lock — cada evento se procesa independientemente.
     // onAuthChange es idempotente (solo actualiza UI), no hay riesgo de carrera real.
     sb.auth.onAuthStateChange(async(event,session)=>{
+      console.log('[AUTH] event:', event, 'user:', session?.user?.email||null);
       const user=session?.user||null;
       if(event==='TOKEN_REFRESHED'){const ap=document.querySelector('.page.active');if(ap){const pid=ap.id.replace('page-','');if(pid==='ranking')loadRanking();if(pid==='muro')cargarMuro();}}
       if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
@@ -784,6 +817,7 @@ function initSupabase(){
     });
     // getSession como fallback fiable (INITIAL_SESSION puede llegar con null durante refresh de token)
     sb.auth.getSession().then(async({data:{session}})=>{
+      console.log('[AUTH] getSession result:', session?.user?.email||'no session');
       if(session?.user&&!currentUser){
         currentUser=session.user;
         await onAuthChange(currentUser);
@@ -800,6 +834,7 @@ function initSupabase(){
 // Always use this for Supabase queries. Picks anon client for reads,
 // auth client for writes. Times out after 10s instead of hanging forever.
 async function dbq(queryFn, requiresAuth=false){
+  console.log('[DBQ] requiresAuth:', requiresAuth, 'currentUser:', !!currentUser);
   const client = requiresAuth ? sb : (window._sbAnon||sb);
   return new Promise((resolve)=>{
     const timer = setTimeout(()=>{
@@ -1349,7 +1384,8 @@ async function loadRanking(){
   // Unlock nav immediately so user isn't stuck
   document.querySelectorAll('.nav-btn').forEach(b=>b.style.pointerEvents='');
   const preDeadline=!deadlinePassed();
-  let _q=(window._sbAnon||sb).from('porras').select('nombre,puntos,paid,updated_at,logros');
+  console.log('[RANKING] starting query, _sbAnon:', !!window._sbAnon, 'sb:', !!sb);
+  let query=(window._sbAnon||sb).from('porras').select('nombre,puntos,paid,updated_at,logros');
   if(!preDeadline)query=query.eq('paid',true);
   // Timeout after 8 seconds
   let timedOut=false;
@@ -1358,6 +1394,7 @@ async function loadRanking(){
     rc.innerHTML='<div class="alert aerr">⏱ La consulta tardó demasiado. Comprueba tu conexión y recarga.</div>';
   },20000);
   const{data,error}=await query.order('puntos',{ascending:false});
+  console.log('[RANKING] result:', data?.length, 'rows, error:', error?.message||null);
   if(timedOut)return;
   clearTimeout(timeout);
   if(error){
@@ -1649,7 +1686,9 @@ function newBet(){
 
 // ══ VIEW BET DETAIL ══
 async function viewBetDetail(nombre){
+  console.log('[DETAIL] viewBetDetail called with:', nombre);
   const{data,error}=await dbq(c=>(window._sbAnon||sb).from('porras').select('nombre,puntos,paid,updated_at,data,user_id,logros').eq('nombre',nombre).limit(1).maybeSingle());
+  console.log('[DETAIL] result:', data?.nombre||null, 'error:', error?.message||null);
   // data/error already set by dbq above
   if(error){console.error('viewBetDetail error:',error.message);showMsg('porra-msg','Error al cargar la porra: '+error.message,'err');return;}
   if(!data){showMsg('porra-msg','No se encontró la porra.','err');return;}
@@ -1764,7 +1803,9 @@ async function loadAllMyBets(){
   if(!mc||!sb)return;
   if(!currentUser){mc.innerHTML='<div class="alert ainfo">Inicia sesión para ver tus porras.</div>';return;}
   mc.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div>';
+  console.log('[MYBET] loading for user:', currentUser?.id);
   const{data,error}=await dbq(c=>c.from('porras').select('nombre,puntos,paid,updated_at,data').eq('user_id',currentUser.id).order('updated_at',{ascending:false}), true);
+  console.log('[MYBET] result:', data?.length, 'rows, error:', error?.message||null);
   if(error){mc.innerHTML='<div class="alert aerr">'+error.message+'</div>';return;}
   if(!data?.length){
     mc.innerHTML='<div class="alert ainfo" style="text-align:center">'+t('no_bets')+'<br><br><button class="btn btn-success" onclick="goNewBet()">'+t('new_bet')+'</button></div>';
@@ -1982,7 +2023,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.10</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.12</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -2153,6 +2194,7 @@ function initMuro(){
 }
 async function cargarMuro(){
   const c=document.getElementById('muro-container');if(!c)return;
+  console.log('[MURO] loading, _sbAnon:', !!window._sbAnon);
   const{data,error}=await dbq(c=>(window._sbAnon||sb).from('muro_mensajes').select('user_id,nombre,mensaje,created_at').order('created_at',{ascending:true}).limit(80));
   if(error){
     // If RLS error (not authenticated), show empty state not error
