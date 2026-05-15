@@ -26,24 +26,36 @@ window._sbLoaded = false;
   tryLoad(0);
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
 :root{--bg:#08101e;--surf:#111827;--surf2:#162032;--surf3:#1d2d42;--border:#1e2d42;--accent:#e63946;--gold:#f4a261;--green:#2a9d8f;--text:#e8edf5;--muted:#64748b;--white:#fff}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
 header{background:linear-gradient(135deg,#08101e,#160810);border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100}
-.header-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:.45rem 1rem;gap:.4rem}
-.header-nav{display:flex;align-items:center;gap:.1rem;flex:1;justify-content:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-.header-nav::-webkit-scrollbar{display:none}
-.header-right{display:flex;align-items:center;gap:.3rem;flex-shrink:0}
-.header-deadline{padding:.2rem 1rem;border-top:1px solid rgba(255,255,255,.05)}
-@media(max-width:560px){
-  .header-top{grid-template-columns:auto auto;grid-template-rows:auto auto;padding:.4rem .75rem .2rem}
-  .header-nav{grid-column:1/-1;order:3;justify-content:flex-start;padding:.2rem 0 .3rem;gap:.05rem;border-top:1px solid rgba(255,255,255,.07);margin-top:.15rem}
-  .header-right{margin-left:auto}
+.header-top{display:flex;align-items:center;justify-content:space-between;padding:.45rem 1.2rem;gap:.75rem;flex-wrap:wrap}
+.header-nav{display:flex;align-items:center;gap:.15rem;order:2}
+.header-right{display:flex;align-items:center;gap:.4rem;flex-shrink:0;order:1}
+.header-deadline{padding:.2rem 1.2rem;border-top:1px solid rgba(255,255,255,.05)}
+@media(min-width:701px){
+  .logo{flex:1}
+  .header-right{order:1}
+  .header-nav{flex:0 0 100%;order:2;justify-content:center;padding-top:.4rem;padding-bottom:.3rem;border-top:1px solid rgba(255,255,255,.07)}
+}
+#muro-container{max-height:380px;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;gap:.6rem;background:rgba(0,0,0,.2);border-radius:10px;border:1px solid var(--border);margin-bottom:.75rem}
+.chat-msg{background:var(--surf2);border:1px solid var(--border);padding:.55rem .8rem;border-radius:12px;border-bottom-left-radius:3px;max-width:88%}
+.chat-msg.own{align-self:flex-end;border-bottom-left-radius:12px;border-bottom-right-radius:3px;background:var(--surf3)}
+.chat-msg b{color:var(--gold);font-size:.75rem;text-transform:uppercase;display:block;margin-bottom:.18rem}
+.chat-msg span{color:var(--text);font-size:.88rem;line-height:1.4;display:block;word-break:break-word}
+.chat-msg small{color:var(--muted);font-size:.65rem;text-align:right;display:block;margin-top:.18rem}
+.chart-wrap{position:relative;height:260px;width:100%;margin-top:.5rem}
+.muro-empty{color:var(--muted);font-size:.83rem;text-align:center;padding:1.5rem}
+@media(max-width:700px){
   .logo{font-size:.9rem}
   .nav-btn{font-size:.72rem;padding:.28rem .4rem}
   .lang-sel{width:2.8rem;font-size:.7rem}
+  .header-nav{flex:1 0 100%;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;padding:.15rem 0 .2rem;border-top:1px solid rgba(255,255,255,.07)}
+  .header-nav::-webkit-scrollbar{display:none}
 }
 .logo{font-family:"Bebas Neue",sans-serif;font-size:1.55rem;letter-spacing:2px;white-space:nowrap}
 .logo span{color:var(--accent)}
@@ -185,6 +197,14 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 .user-badge{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--muted);cursor:pointer;padding:.2rem .4rem;border-radius:6px;border:1px solid var(--border);background:var(--surf2)}
 .user-badge:hover{border-color:var(--accent)}
 .user-avatar{width:22px;height:22px;border-radius:50%;object-fit:cover}
+#muro-container{max-height:380px;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;gap:.6rem;background:rgba(0,0,0,.2);border-radius:10px;border:1px solid var(--border);margin-bottom:.75rem}
+.chat-msg{background:var(--surf2);border:1px solid var(--border);padding:.55rem .8rem;border-radius:12px;border-bottom-left-radius:3px;max-width:88%}
+.chat-msg.own{align-self:flex-end;border-bottom-left-radius:12px;border-bottom-right-radius:3px;background:var(--surf3)}
+.chat-msg b{color:var(--gold);font-size:.75rem;text-transform:uppercase;display:block;margin-bottom:.18rem}
+.chat-msg span{color:var(--text);font-size:.88rem;line-height:1.4;display:block;word-break:break-word}
+.chat-msg small{color:var(--muted);font-size:.65rem;text-align:right;display:block;margin-top:.18rem}
+.chart-wrap{position:relative;height:260px;width:100%;margin-top:.5rem}
+.muro-empty{color:var(--muted);font-size:.83rem;text-align:center;padding:1.5rem}
 @media(max-width:700px){.bracket-wrap{grid-template-columns:1fr}.page{padding:1rem}.groups-grid{grid-template-columns:1fr}.sinp{width:26px!important}}
 </style>
 </head>
@@ -192,13 +212,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.0.5</span></div>
-    <div class="header-nav">
-      <button class="nav-btn" id="tab-ranking" onclick="showPage('ranking')">🏆 <span id="lbl-ranking">Clasificación</span></button>
-      <button class="nav-btn" id="tab-porras" onclick="showPage('porras')">📋 <span id="lbl-mis-porras">Mis Porras</span></button>
-      <button class="nav-btn" id="tab-admin" onclick="tryAdmin()" style="display:none">⚙️ Admin</button>
-      <button class="nav-btn active" id="tab-normas" onclick="showPage('normas')">📜 <span id="lbl-normas">Normas</span></button>
-    </div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.1.0</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -213,6 +227,13 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
         <option value="fr">FR</option><option value="de">DE</option>
         <option value="it">IT</option><option value="nl">NL</option>
       </select>
+    </div>
+    <div class="header-nav">
+      <button class="nav-btn" id="tab-ranking" onclick="showPage('ranking')">🏆 <span id="lbl-ranking">Clasificación</span></button>
+      <button class="nav-btn" id="tab-porras" onclick="showPage('porras')">📋 <span id="lbl-mis-porras">Mis Porras</span></button>
+      <button class="nav-btn" id="tab-admin" onclick="tryAdmin()" style="display:none">⚙️ Admin</button>
+      <button class="nav-btn active" id="tab-normas" onclick="showPage('normas')">📜 <span id="lbl-normas">Normas</span></button>
+    <button class="nav-btn" id="tab-muro" onclick="showPage('muro')">💬 <span id="lbl-muro">Muro</span></button>
     </div>
   </div>
   <div class="header-deadline" id="deadline-wrap"></div>
@@ -250,6 +271,19 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
   <div id="normas-content"></div>
 </div>
 
+<div class="page" id="page-muro">
+  <div class="hero"><h1>💬 <span id="lbl-muro-title">MURO EN VIVO</span></h1><p id="lbl-muro-sub">Comenta, pica y celebra en tiempo real</p></div>
+  <div class="card">
+    <div id="muro-container"><div class="muro-empty">Conectando al muro...</div></div>
+    <div id="muro-login-hint" style="display:none;font-size:.82rem;color:var(--muted);text-align:center;padding:.5rem 0">
+      <a href="#" onclick="openAuthModal();return false" style="color:var(--accent)">Inicia sesión</a> para escribir en el muro
+    </div>
+    <div id="muro-input-wrap" style="display:none;display:flex;gap:.5rem;align-items:center;margin-top:.5rem">
+      <input type="text" id="muro-input" placeholder="Escribe un mensaje..." maxlength="280" style="flex:1" onkeydown="if(event.key==='Enter')enviarMensaje()">
+      <button class="btn btn-primary" onclick="enviarMensaje()" id="muro-send-btn">Enviar</button>
+    </div>
+  </div>
+</div>
 <div class="page" id="page-admin">
   <div class="card">
     <div class="card-title">⚙️ Panel de Administración</div>
@@ -327,6 +361,7 @@ function setLang(l){
   if(el('lbl-pass'))el('lbl-pass').textContent=t('password');
   if(el('lbl-enter'))el('lbl-enter').textContent=t('enter');
   if(el('lbl-cancel'))el('lbl-cancel').textContent=t('cancel');
+  if(el('lbl-muro'))el('lbl-muro').textContent=t('muro')||'Muro';
   renderStep(currentStep);
   renderNormas();
   renderDeadline();
@@ -519,44 +554,47 @@ window.onload=()=>{
   setTimeout(showBannerIfNeeded,500);
 };
 function waitAndLoad(attempts){
+  // Keep for compatibility — delegates to initSupabase
+  initSupabase();
+}
+function initSupabase(){
   if(window._sbLoadFailed){
     const rc=document.getElementById('rank-container');
-    if(rc)rc.innerHTML='<div class="alert aerr">❌ <strong>Sin conexión a internet.</strong><br>Esta app necesita conexión. Conéctate y recarga.<br><button class="btn btn-ghost" style="margin-top:.5rem" onclick="location.reload()">🔄 Recargar</button></div>';
-    return;
-  }
-  if(attempts>40){
-    const rc=document.getElementById('rank-container');
-    if(rc)rc.innerHTML='<div class="alert aerr">❌ La librería tardó demasiado. Recarga la página.</div>';
+    if(rc)rc.innerHTML='<div class="alert aerr">❌ Sin conexión. Conéctate y recarga.<br><button class="btn btn-ghost" style="margin-top:.5rem" onclick="location.reload()">🔄 Recargar</button></div>';
     return;
   }
   if(!window._sbLoaded||typeof window.supabase==='undefined'||!window.supabase.createClient){
-    setTimeout(()=>waitAndLoad(attempts+1),250);
-    return;
+    setTimeout(initSupabase,250);return;
   }
   try{
-    sb=window.supabase.createClient(SB_URL,SB_KEY);
-    // Auth state listener
+    // ── Punto único de creación del cliente ──
+    sb=window.supabase.createClient(SB_URL,SB_KEY,{
+      auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}
+    });
+    // ── Escuchador global de sesión ──
     sb.auth.onAuthStateChange(async(event,session)=>{
       currentUser=session?.user||null;
       if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
+        if(window.location.hash.includes('access_token')){
+          history.replaceState(null,'',window.location.pathname);
+          if(window.location.hash.includes('type=signup'))
+            showConfirmModal('✅ ¡Cuenta confirmada!','Ya puedes iniciar sesión con tu email y contraseña.',()=>{});
+        }
         await onAuthChange(currentUser);
       }else if(event==='SIGNED_OUT'){
         await onAuthChange(null);
       }
     });
-    // Handle email confirmation / OAuth redirect (token in URL hash)
-    sb.auth.getSession().then(async({data:{session}})=>{
-      currentUser=session?.user||null;
-      await onAuthChange(currentUser);
-      // Clean up URL hash after auth redirect
-      if(window.location.hash&&window.location.hash.includes('access_token')){
-        history.replaceState(null,'',window.location.pathname);
-      }
-    });
+    // Sesión inicial — solo si no hay token en URL (lo gestiona onAuthStateChange)
+    if(!window.location.hash.includes('access_token')){
+      sb.auth.getSession().then(async({data:{session}})=>{
+        currentUser=session?.user||null;
+        await onAuthChange(currentUser);
+      });
+    }
     loadRanking();
-  }catch(e){
-    console.error('Supabase init error:',e);
-  }
+    initMuro();
+  }catch(e){console.error('Supabase init error:',e);}
 }
 
 async function onAuthChange(user){
@@ -707,6 +745,7 @@ function showPage(id){
     loadAllMyBets();
   }
   if(id==='normas')renderNormas();
+  if(id==='muro'){cargarMuro();}
 }
 
 function tryAdmin(){if(isAdmin)showPage('admin');}
@@ -1106,8 +1145,8 @@ async function loadRanking(){
   const moneyConfirmed=paid*PRICE;
   const moneyPending=pending*PRICE;
   const moneyTotal=total*PRICE;
-  const prize1=Math.round(moneyConfirmed*0.7);
-  const prize2=Math.round(moneyConfirmed*0.3);
+  const prize1=(Math.floor(moneyConfirmed*0.7*100)/100).toFixed(2);
+  const prize2=(Math.floor(moneyConfirmed*0.3*100)/100).toFixed(2);
   let h='<div class="card" style="margin-bottom:1rem">';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem;margin-bottom:.75rem">';
   h+='<div style="background:var(--surf2);border-radius:8px;padding:.7rem;text-align:center"><div style="font-family:"Bebas Neue",sans-serif;font-size:1.6rem;color:var(--gold)">'+total+'</div><div style="font-size:.74rem;color:var(--muted)">Participantes</div></div>';
@@ -1252,12 +1291,12 @@ async function buildAdmBracket(container){
       h+='<div class="bracket-wrap">';
       [[1,half],[half+1,r.n]].forEach(([from,to],hi)=>{
         h+='<div class="bracket-half"><div class="bh-title">'+(hi===0?t('left_half'):t('right_half'))+'</div><div class="adm-ko-grid">';
-        for(let i=from;i<=to;i++){const k=r.p+'_'+i;h+='<div class="adm-kom"><div class="kolbl">'+r.p.toUpperCase()+'-'+i+'</div><div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admProp()">'+opts+'</select><span style="color:var(--muted);font-size:.68rem">vs</span><select id="adm_'+k+'_a" onchange="admProp()">'+opts+'</select></div><div class="adm-win-row">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admProp()">'+opts+'</select></div></div>';}
+        for(let i=from;i<=to;i++){const k=r.p+'_'+i;h+='<div class="adm-kom"><div class="kolbl">'+r.p.toUpperCase()+'-'+i+'</div><div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admPropAndUpdateWinners()">'+opts+'</select><span style="color:var(--muted);font-size:.68rem">vs</span><select id="adm_'+k+'_a" onchange="admPropAndUpdateWinners()">'+opts+'</select></div><div class="adm-win-row">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admPropAndUpdateWinners()"><option value="">--</option></select></div></div>';}
         h+='</div></div>';
       });
       h+='</div>';
     }else{
-      const k=r.p+'_1';h+='<div class="adm-ko-grid"><div class="adm-kom"><div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admProp()">'+opts+'</select><span style="color:var(--muted);font-size:.68rem">vs</span><select id="adm_'+k+'_a" onchange="admProp()">'+opts+'</select></div><div class="adm-win-row">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admProp()">'+opts+'</select></div></div></div>';
+      const k=r.p+'_1';h+='<div class="adm-ko-grid"><div class="adm-kom"><div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admPropAndUpdateWinners()">'+opts+'</select><span style="color:var(--muted);font-size:.68rem">vs</span><select id="adm_'+k+'_a" onchange="admPropAndUpdateWinners()">'+opts+'</select></div><div class="adm-win-row">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admPropAndUpdateWinners()"><option value="">--</option></select></div></div></div>';
     }
   });
   const posOpts=[['champion',t('champion')],['runner_up',t('runner_up')],['semis',t('semis')],['quarters',t('quarters')],['r16',t('r16')],['r32s',t('r32s')],['groups_out',t('groups_out')]].map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
@@ -1280,6 +1319,29 @@ function admProp(){
   const sw=Array.from({length:2},(_,i)=>{const v=document.getElementById('adm_sf_'+(i+1)+'_w')?.value;return v&&v!==''?parseInt(v):null;});
   const fh=document.getElementById('adm_fin_1_h'),fa=document.getElementById('adm_fin_1_a');if(fh&&sw[0]!=null)fh.value=sw[0];if(fa&&sw[1]!=null)fa.value=sw[1];
 }
+function admPropAndUpdateWinners(){
+  admProp();
+  // Update winner selects to only show the two teams of each match
+  const rounds=[{n:16,p:'r32'},{n:8,p:'oct'},{n:4,p:'qf'},{n:2,p:'sf'},{n:1,p:'fin'}];
+  const allT=TNAMES[LANG]||TNAMES.es;
+  rounds.forEach(r=>{
+    for(let i=1;i<=r.n;i++){
+      const k=r.p+'_'+i;
+      const hEl=document.getElementById('adm_'+k+'_h');
+      const aEl=document.getElementById('adm_'+k+'_a');
+      const wEl=document.getElementById('adm_'+k+'_w');
+      if(!wEl)continue;
+      const hv=hEl?.value,av=aEl?.value;
+      const curW=wEl.value;
+      wEl.innerHTML='<option value="">--</option>';
+      if(hv&&hv!==''){const o=document.createElement('option');o.value=hv;o.textContent=allT[parseInt(hv)];wEl.appendChild(o);}
+      if(av&&av!==''){const o=document.createElement('option');o.value=av;o.textContent=allT[parseInt(av)];wEl.appendChild(o);}
+      // Restore previous selection if still valid
+      if(curW&&(curW===hv||curW===av))wEl.value=curW;
+    }
+  });
+}
+
 async function saveAdmRes(){
   if(!sb)return;document.getElementById('res-spin').style.display='';document.getElementById('btn-saveres').disabled=true;
   const res={grupos:{},ko:{},extras:{}};
@@ -1344,9 +1406,11 @@ function newBet(){
 
 // ══ VIEW BET DETAIL ══
 async function viewBetDetail(nombre){
-  const{data,error}=await sb.from('porras').select('nombre,puntos,paid,updated_at,data').eq('nombre',nombre).maybeSingle();
-  if(error){console.error('viewBetDetail error:',error);return;}
-  if(!data){console.warn('viewBetDetail: no data for',nombre);return;}
+  let query=sb.from('porras').select('nombre,puntos,paid,updated_at,data,user_id').eq('nombre',nombre);
+  // If viewing own bet, add user_id filter for RLS compliance
+  const{data,error}=await query.maybeSingle();
+  if(error){console.error('viewBetDetail error:',error.message);showMsg('porra-msg','Error al cargar la porra: '+error.message,'err');return;}
+  if(!data){showMsg('porra-msg','No se encontró la porra.','err');return;}
   const p=JSON.parse(data.data);
   const allT=TNAMES[LANG]||TNAMES.es;
   document.getElementById('detail-title').textContent=t('detail_title')+': '+nombre;
@@ -1406,7 +1470,13 @@ async function viewBetDetail(nombre){
   if(ex.gol)h+='<div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:.45rem .7rem;font-size:.8rem">⚽ '+t('top_scorer')+'<br><strong>'+ex.gol+'</strong></div>';
   if(ex.jug)h+='<div style="background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:.45rem .7rem;font-size:.8rem">🌟 '+t('best_player')+'<br><strong>'+ex.jug+'</strong></div>';
   h+='</div>';
+  // Gráfica evolución si hay user_id
+  if(data.user_id){
+    h+='<div class="card-title" style="margin-top:1rem">📈 Evolución en el Torneo</div>';
+    h+='<div class="chart-wrap"><canvas id="chart-evolucion"></canvas></div>';
+  }
   document.getElementById('detail-content').innerHTML=h;
+  if(data.user_id)setTimeout(()=>dibujarGraficaEvolucion(data.user_id,'chart-evolucion'),100);
   const modal=document.getElementById('detail-modal');modal.style.display='flex';
 }
 function closeDetail(){document.getElementById('detail-modal').style.display='none';}
@@ -1415,7 +1485,9 @@ async function recalcAll(realData){
   if(!realData){const{data}=await sb.from('resultados').select('data').eq('id',1).single();if(!data){showMsg('rc-msg','Sin resultados guardados','err');return;}realData=JSON.parse(data.data);}
   const{data:porras}=await sb.from('porras').select('nombre,data');if(!porras)return;
   for(const row of porras){const pts=calcScore(JSON.parse(row.data),realData);await sb.from('porras').update({puntos:pts}).eq('nombre',row.nombre);}
-  const el=document.getElementById('rc-msg');if(el)showMsg('rc-msg','✅ '+porras.length+' porras recalculadas','ok');
+  const count=porras.length;
+  const el=document.getElementById('rc-msg');if(el)showMsg('rc-msg','✅ '+count+' porras recalculadas','ok');
+  await guardarHistorial();
 }
 function buildSQL(){
   return'<div class="alert ainfo">Ejecuta en <strong>Supabase → SQL Editor → New query</strong></div><div class="sql-box">-- PRIMERA VEZ (tablas nuevas):\ncreate table if not exists porras (\n  id         bigserial primary key,\n  nombre     text unique not null,\n  email      text,\n  data       text,\n  puntos     integer default 0,\n  paid       boolean default false,\n  updated_at timestamptz default now()\n);\ncreate table if not exists resultados (\n  id   integer primary key default 1,\n  data text\n);\nalter table porras     enable row level security;\nalter table resultados enable row level security;\ncreate policy "porras_read"   on porras    for select using (true);\ncreate policy "porras_insert" on porras    for insert with check (true);\ncreate policy "porras_update" on porras    for update using (true);\ncreate policy "res_read"      on resultados for select using (true);\ncreate policy "res_all"       on resultados for all    using (true);\n\n-- SI YA TIENES LA TABLA (solo añadir columna paid):\nALTER TABLE porras ADD COLUMN IF NOT EXISTS paid boolean default false;</div><button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.querySelector(\'.sql-box\').textContent.trim());this.textContent=\'✅ Copiado!\'">📋 Copiar SQL</button>';
@@ -1629,9 +1701,107 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.0.5</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.1.0</div>';
   nc.innerHTML=h;
 }
+// ══ HISTORIAL RANKING ══
+async function guardarHistorial(){
+  if(!sb||!isAdmin)return;
+  const{data:porras}=await sb.from('porras').select('user_id,puntos').eq('paid',true);
+  if(!porras?.length)return;
+  // Get current positions
+  const sorted=[...porras].sort((a,b)=>b.puntos-a.puntos);
+  const rows=sorted.map((p,i)=>({user_id:p.user_id,posicion:i+1,puntos:p.puntos})).filter(r=>r.user_id);
+  if(!rows.length)return;
+  await sb.from('historial_ranking').upsert(rows,{onConflict:'user_id,fecha'});
+}
+
+async function dibujarGraficaEvolucion(userId,canvasId){
+  if(!sb)return;
+  const{data,error}=await sb.from('historial_ranking').select('posicion,puntos,fecha').eq('user_id',userId).order('fecha',{ascending:true});
+  if(error||!data?.length)return;
+  const ctx=document.getElementById(canvasId);if(!ctx)return;
+  // Destroy previous chart if exists
+  if(ctx._chart)ctx._chart.destroy();
+  ctx._chart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:data.map(d=>new Date(d.fecha).toLocaleDateString([],{month:'short',day:'numeric'})),
+      datasets:[{
+        label:'Posición',
+        data:data.map(d=>d.posicion),
+        borderColor:'#f4a261',
+        backgroundColor:'rgba(244,162,97,.12)',
+        tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#f4a261'
+      },{
+        label:'Puntos',
+        data:data.map(d=>d.puntos),
+        borderColor:'#2a9d8f',
+        backgroundColor:'rgba(42,157,143,.08)',
+        tension:.4,fill:false,pointRadius:3,pointBackgroundColor:'#2a9d8f',
+        yAxisID:'y2'
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},
+      scales:{
+        y:{reverse:true,ticks:{precision:0,color:'#f4a261',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'},title:{display:true,text:'Posición',color:'#f4a261',font:{size:10}}},
+        y2:{position:'right',ticks:{precision:0,color:'#2a9d8f',font:{size:10}},grid:{display:false},title:{display:true,text:'Puntos',color:'#2a9d8f',font:{size:10}}},
+        x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}
+      }
+    }
+  });
+}
+
+// ══ MURO DE MENSAJES ══
+let _muroChannel=null;
+function initMuro(){
+  if(!sb)return;
+  cargarMuro();
+  // Realtime subscription
+  _muroChannel=sb.channel('muro_realtime')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'muro_mensajes'},()=>{cargarMuro();})
+    .subscribe();
+}
+async function cargarMuro(){
+  const c=document.getElementById('muro-container');if(!c)return;
+  const{data,error}=await sb.from('muro_mensajes').select('user_id,nombre,mensaje,created_at').order('created_at',{ascending:true}).limit(80);
+  if(error){c.innerHTML='<div class="muro-empty">Error cargando mensajes</div>';return;}
+  if(!data?.length){c.innerHTML='<div class="muro-empty">Sé el primero en escribir algo 👋</div>';return;}
+  c.innerHTML=data.map(m=>{
+    const own=currentUser&&m.user_id===currentUser.id;
+    const time=new Date(m.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    return '<div class="chat-msg'+(own?' own':'')+'">'
+      +'<b>'+esc(m.nombre)+'</b>'
+      +'<span>'+esc(m.mensaje)+'</span>'
+      +'<small>'+time+'</small>'
+      +'</div>';
+  }).join('');
+  c.scrollTop=c.scrollHeight;
+  // Mostrar/ocultar input según sesión
+  const wrap=document.getElementById('muro-input-wrap');
+  const hint=document.getElementById('muro-login-hint');
+  if(currentUser){if(wrap)wrap.style.display='flex';if(hint)hint.style.display='none';}
+  else{if(wrap)wrap.style.display='none';if(hint)hint.style.display='';}
+}
+let _muroLastSend=0;
+async function enviarMensaje(){
+  if(!currentUser){openAuthModal();return;}
+  const now=Date.now();
+  if(now-_muroLastSend<8000){showConfirmModal('⏳ Espera','Por favor espera unos segundos antes de enviar otro mensaje.',()=>{});return;}
+  const inp=document.getElementById('muro-input');
+  const msg=inp?.value.trim();
+  if(!msg)return;
+  const nombre=currentUser.user_metadata?.full_name||currentUser.user_metadata?.name||currentUser.email?.split('@')[0]||'Anónimo';
+  const btn=document.getElementById('muro-send-btn');
+  if(btn)btn.disabled=true;
+  const{error}=await sb.from('muro_mensajes').insert({user_id:currentUser.id,nombre,mensaje:msg});
+  if(btn)btn.disabled=false;
+  if(!error){inp.value='';_muroLastSend=Date.now();}
+  else showConfirmModal('❌ Error','No se pudo enviar el mensaje: '+error.message,()=>{});
+}
+
 function showMsg(id,msg,type){
   const el=document.getElementById(id);if(!el)return;
   const cls=type==='ok'?'aok':type==='err'?'aerr':'ainfo';
