@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.28</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.29</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1705,7 +1705,7 @@ async function buildAdmBracket(container){
     rounds.forEach(r=>{for(let i=1;i<=r.n;i++){const k=r.p+'_'+i,d=saved.ko?.[k]||{},sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};sv('adm_'+k+'_h',d.h);sv('adm_'+k+'_a',d.a);sv('adm_'+k+'_w',d.w);}});
     const sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};sv('adm_ext_camp',saved.extras?.camp);sv('adm_ext_esp',saved.extras?.esp);
     const si=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};si('adm_ext_gol',saved.extras?.gol);si('adm_ext_jug',saved.extras?.jug);
-    admProp();
+    _admPropAndUpdate();
     admRefreshR32Selects();
   },0);
 }
@@ -1719,10 +1719,7 @@ function admProp(){
   const sw=Array.from({length:2},(_,i)=>{const v=document.getElementById('adm_sf_'+(i+1)+'_w')?.value;return v&&v!==''?parseInt(v):null;});
   const fh=document.getElementById('adm_fin_1_h'),fa=document.getElementById('adm_fin_1_a');if(fh&&sw[0]!=null)fh.value=sw[0];if(fa&&sw[1]!=null)fa.value=sw[1];
 }
-function admPropAndUpdateWinners(){
-  // Use setTimeout to ensure DOM values are updated before reading
-  setTimeout(()=>_admPropAndUpdate(),0);
-}
+function admPropAndUpdateWinners(){_admPropAndUpdate();}
 function _admPropAndUpdate(){
   admProp();
   const allT=TNAMES[LANG]||TNAMES.es;
@@ -2196,7 +2193,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.28</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.29</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
