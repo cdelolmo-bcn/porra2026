@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.4</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.6</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -751,7 +751,12 @@ function initSupabase(){
   try{
     // ── Punto único de creación del cliente ──
     sb=window.supabase.createClient(SB_URL,SB_KEY,{
-      auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}
+      auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true,
+        storageKey:'porra2026_auth'}
+    });
+    // Cliente anónimo para queries públicas — nunca bloqueado por estado de auth
+    window._sbAnon=window.supabase.createClient(SB_URL,SB_KEY,{
+      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
     });
     // ── Escuchador global de sesión ──
     // No usamos lock — cada evento se procesa independientemente.
@@ -769,6 +774,13 @@ function initSupabase(){
       }else if(event==='SIGNED_OUT'){
         currentUser=null;
         await onAuthChange(null);
+      }
+    });
+    // getSession como fallback fiable (INITIAL_SESSION puede llegar con null durante refresh de token)
+    sb.auth.getSession().then(async({data:{session}})=>{
+      if(session?.user&&!currentUser){
+        currentUser=session.user;
+        await onAuthChange(currentUser);
       }
     });
     // loadRanking e initMuro son públicos — no esperan a la sesión
@@ -882,8 +894,13 @@ async function deleteAccount(){
 }
 
 async function logout(){
-  await sb.auth.signOut();
   closeUserMenu();
+  await sb.auth.signOut();
+  // onAuthStateChange SIGNED_OUT will call onAuthChange(null)
+  // but also update UI immediately in case event is slow
+  currentUser=null;
+  isAdmin=false;
+  await onAuthChange(null);
   showPage('ranking');
 }
 
@@ -1306,7 +1323,8 @@ async function loadRanking(){
   // Unlock nav immediately so user isn't stuck
   document.querySelectorAll('.nav-btn').forEach(b=>b.style.pointerEvents='');
   const preDeadline=!deadlinePassed();
-  let query=sb.from('porras').select('nombre,puntos,paid,updated_at,logros');
+  const _db=window._sbAnon||sb;
+  let query=_db.from('porras').select('nombre,puntos,paid,updated_at,logros');
   if(!preDeadline)query=query.eq('paid',true);
   // Timeout after 8 seconds
   let timedOut=false;
@@ -1317,7 +1335,14 @@ async function loadRanking(){
   const{data,error}=await query.order('puntos',{ascending:false});
   if(timedOut)return;
   clearTimeout(timeout);
-  if(error){rc.innerHTML='<div class="alert aerr">'+error.message+'</div>';return;}
+  if(error){
+    if(error.code==='PGRST301'||error.message?.includes('JWT')){
+      rc.innerHTML='<div class="card"><div style="text-align:center;padding:2.5rem;color:var(--muted)">'+t('no_bets')+'</div></div>';
+    }else{
+      rc.innerHTML='<div class="alert aerr">'+error.message+'</div>';
+    }
+    return;
+  }
   if(!data?.length){rc.innerHTML='<div class="card"><div style="text-align:center;padding:2.5rem;color:var(--muted)">'+t('no_bets')+'</div></div>';return;}
   const PRICE=5;
   const total=data.length;
@@ -1606,6 +1631,8 @@ async function viewBetDetail(nombre){
   if(!data){showMsg('porra-msg','No se encontró la porra.','err');return;}
   const p=JSON.parse(data.data);
   const allT=TNAMES[LANG]||TNAMES.es;
+  const dm=document.getElementById('detail-modal');
+  if(dm)dm.style.display='flex';
   document.getElementById('detail-title').textContent=t('detail_title')+': '+nombre;
   let h='';
   // Paid status
@@ -1675,7 +1702,7 @@ async function viewBetDetail(nombre){
   if(data.user_id)setTimeout(()=>dibujarGraficaEvolucion(data.user_id,'chart-evolucion'),100);
   const modal=document.getElementById('detail-modal');modal.style.display='flex';
 }
-function closeDetail(){document.getElementById('detail-modal').style.display='none';}
+function closeDetail(){const dm=document.getElementById('detail-modal');if(dm)dm.style.display='none';}
 async function recalcAll(realData){
   if(!sb)return;
   if(!realData){const{data}=await sb.from('resultados').select('data').eq('id',1).single();if(!data){showMsg('rc-msg','Sin resultados guardados','err');return;}realData=JSON.parse(data.data);}
@@ -1931,7 +1958,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.4</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.6</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -2102,8 +2129,17 @@ function initMuro(){
 }
 async function cargarMuro(){
   const c=document.getElementById('muro-container');if(!c)return;
-  const{data,error}=await sb.from('muro_mensajes').select('user_id,nombre,mensaje,created_at').order('created_at',{ascending:true}).limit(80);
-  if(error){c.innerHTML='<div class="muro-empty">'+t('muro_error')+'</div>';return;}
+  const _db=window._sbAnon||sb;
+  const{data,error}=await _db.from('muro_mensajes').select('user_id,nombre,mensaje,created_at').order('created_at',{ascending:true}).limit(80);
+  if(error){
+    // If RLS error (not authenticated), show empty state not error
+    if(error.code==='PGRST301'||error.message?.includes('JWT')||error.message?.includes('permission')){
+      c.innerHTML='<div class="muro-empty">'+t('muro_empty')+'</div>';
+    }else{
+      c.innerHTML='<div class="muro-empty">'+t('muro_error')+'</div>';
+    }
+    return;
+  }
   if(!data?.length){c.innerHTML='<div class="muro-empty">'+t('muro_empty')+'</div>';return;}
   c.innerHTML=data.map(m=>{
     const own=currentUser&&m.user_id===currentUser.id;
