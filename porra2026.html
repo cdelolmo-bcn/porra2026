@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.24</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.25</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1573,22 +1573,22 @@ function admSec(sec,btn){
 }
 // R32 bracket slot definitions for Admin/Simulator
 const ADM_R32_DEFS={
-  r32_1: {h:[16,17,18,19], a:null},  // 1ºE vs Mejor3º
-  r32_2: {h:[32,33,34,35], a:null},  // 1ºI vs Mejor3º
-  r32_3: {h:[0,1,2,3],     a:[4,5,6,7]},    // 2ºA vs 2ºB
-  r32_4: {h:[20,21,22,23], a:[8,9,10,11]},  // 1ºF vs 2ºC
-  r32_5: {h:[40,41,42,43], a:[44,45,46,47]},// 2ºK vs 2ºL
-  r32_6: {h:[28,29,30,31], a:[36,37,38,39]},// 1ºH vs 2ºJ
-  r32_7: {h:[12,13,14,15], a:null},  // 1ºD vs Mejor3º
-  r32_8: {h:[24,25,26,27], a:null},  // 1ºG vs Mejor3º
-  r32_9: {h:[8,9,10,11],   a:[20,21,22,23]},// 1ºC vs 2ºF
-  r32_10:{h:[16,17,18,19], a:[32,33,34,35]},// 2ºE vs 2ºI
-  r32_11:{h:[0,1,2,3],     a:null},  // 1ºA vs Mejor3º
-  r32_12:{h:[44,45,46,47], a:null},  // 1ºL vs Mejor3º
-  r32_13:{h:[36,37,38,39], a:[28,29,30,31]},// 1ºJ vs 2ºH
-  r32_14:{h:[12,13,14,15], a:[24,25,26,27]},// 2ºD vs 2ºG
-  r32_15:{h:[4,5,6,7],     a:null},  // 1ºB vs Mejor3º
-  r32_16:{h:[40,41,42,43], a:null},  // 1ºK vs Mejor3º
+  r32_1: {hl:'1ºE',  al:'Mejor 3º',h:[16,17,18,19],a:null},
+  r32_2: {hl:'1ºI',  al:'Mejor 3º',h:[32,33,34,35],a:null},
+  r32_3: {hl:'2ºA',  al:'2ºB',     h:[0,1,2,3],    a:[4,5,6,7]},
+  r32_4: {hl:'1ºF',  al:'2ºC',     h:[20,21,22,23],a:[8,9,10,11]},
+  r32_5: {hl:'2ºK',  al:'2ºL',     h:[40,41,42,43],a:[44,45,46,47]},
+  r32_6: {hl:'1ºH',  al:'2ºJ',     h:[28,29,30,31],a:[36,37,38,39]},
+  r32_7: {hl:'1ºD',  al:'Mejor 3º',h:[12,13,14,15],a:null},
+  r32_8: {hl:'1ºG',  al:'Mejor 3º',h:[24,25,26,27],a:null},
+  r32_9: {hl:'1ºC',  al:'2ºF',     h:[8,9,10,11],  a:[20,21,22,23]},
+  r32_10:{hl:'2ºE',  al:'2ºI',     h:[16,17,18,19],a:[32,33,34,35]},
+  r32_11:{hl:'1ºA',  al:'Mejor 3º',h:[0,1,2,3],    a:null},
+  r32_12:{hl:'1ºL',  al:'Mejor 3º',h:[44,45,46,47],a:null},
+  r32_13:{hl:'1ºJ',  al:'2ºH',     h:[36,37,38,39],a:[28,29,30,31]},
+  r32_14:{hl:'2ºD',  al:'2ºG',     h:[12,13,14,15],a:[24,25,26,27]},
+  r32_15:{hl:'1ºB',  al:'Mejor 3º',h:[4,5,6,7],    a:null},
+  r32_16:{hl:'1ºK',  al:'Mejor 3º',h:[40,41,42,43],a:null},
 };
 
 function admMakeOpts(teams, allT, usedSet, exceptVal){
@@ -1658,7 +1658,7 @@ async function buildAdmBracket(container){
             hOpts=admMakeOpts(def?def.h:null,allT,new Set(),-1);
             aOpts=admMakeOpts(def?def.a:null,allT,new Set(),-1);
           }
-          h+='<div class="adm-kom"><div class="kolbl">'+r.p.toUpperCase()+'-'+i+(r.p==="r32"&&ADM_R32_DEFS['r32_'+i]?' <span style="font-size:.68rem;color:var(--muted);font-weight:400">'+ADM_R32_DEFS['r32_'+i].hl+' vs '+ADM_R32_DEFS['r32_'+i].al+'</span>':'')+'</div><div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+hOpts+'</select><span style="color:var(--muted);font-size:.68rem">vs</span><select id="adm_'+k+'_a" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+aOpts+'</select></div><div class="adm-win-row">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admPropAndUpdateWinners()"><option value="">--</option></select></div></div>';
+          h+='<div class="adm-kom"><div class="kolbl">'+r.p.toUpperCase()+'-'+i+(r.p==="r32"&&ADM_R32_DEFS['r32_'+i]?' <span style="font-size:.68rem;color:var(--muted);font-weight:400">'+(ADM_R32_DEFS['r32_'+i].hl||'?')+' vs '+(ADM_R32_DEFS['r32_'+i].al||'?')+'</span>':'')+'</div><div class="adm-ko-row"><select id="adm_'+k+'_h" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+hOpts+'</select><span style="color:var(--muted);font-size:.68rem">vs</span><select id="adm_'+k+'_a" onchange="admPropAndUpdateWinners();admRefreshR32Selects()">'+aOpts+'</select></div><div class="adm-win-row">'+t('advances')+' <select id="adm_'+k+'_w" onchange="admPropAndUpdateWinners()"><option value="">--</option></select></div></div>';
         }
         h+='</div></div>';
       });
@@ -1703,8 +1703,8 @@ function admPropAndUpdateWinners(){
       const hv=hEl?.value,av=aEl?.value;
       const curW=wEl.value;
       wEl.innerHTML='<option value="">--</option>';
-      if(hv&&hv!==''){const o=document.createElement('option');o.value=hv;o.textContent=fi(parseInt(hv),true)+' '+tn(parseInt(hv));wEl.appendChild(o);}
-      if(av&&av!==''){const o=document.createElement('option');o.value=av;o.textContent=fi(parseInt(av),true)+' '+tn(parseInt(av));wEl.appendChild(o);}
+      if(hv&&hv!==''&&!isNaN(parseInt(hv))){const hi=parseInt(hv);const o=document.createElement('option');o.value=hv;o.textContent=fi(hi,true)+' '+tn(hi);wEl.appendChild(o);}
+      if(av&&av!==''&&!isNaN(parseInt(av))){const ai=parseInt(av);const o=document.createElement('option');o.value=av;o.textContent=fi(ai,true)+' '+tn(ai);wEl.appendChild(o);}
       // Restore previous selection if still valid
       if(curW&&(curW===hv||curW===av))wEl.value=curW;
     }
@@ -2138,7 +2138,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.24</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.25</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
