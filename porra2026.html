@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.22</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.23</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1692,8 +1692,8 @@ function admPropAndUpdateWinners(){
       const hv=hEl?.value,av=aEl?.value;
       const curW=wEl.value;
       wEl.innerHTML='<option value="">--</option>';
-      if(hv&&hv!==''){const o=document.createElement('option');o.value=hv;o.textContent=allT[parseInt(hv)];wEl.appendChild(o);}
-      if(av&&av!==''){const o=document.createElement('option');o.value=av;o.textContent=allT[parseInt(av)];wEl.appendChild(o);}
+      if(hv&&hv!==''){const o=document.createElement('option');o.value=hv;o.textContent=fi(parseInt(hv),true)+' '+tn(parseInt(hv));wEl.appendChild(o);}
+      if(av&&av!==''){const o=document.createElement('option');o.value=av;o.textContent=fi(parseInt(av),true)+' '+tn(parseInt(av));wEl.appendChild(o);}
       // Restore previous selection if still valid
       if(curW&&(curW===hv||curW===av))wEl.value=curW;
     }
@@ -2127,7 +2127,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.22</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.23</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -2500,9 +2500,12 @@ function renderSimulador(){
   // ── RONDA DE 32 ──────────────────────────────────────────────────────────
   h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.5rem 0 .4rem">Ronda de 32</div>';
   h+='<div style="font-size:.72rem;color:var(--muted);margin-bottom:.5rem">&#128994; Oficial &nbsp; &#9634; Hipótesis</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">';
+  h+='<div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:.75rem;color:var(--muted);letter-spacing:1px;margin-bottom:.4rem;text-align:center">'+t('left_half')+'</div>';
   const used=simGetUsedTeams();
 
   for(let i=1;i<=16;i++){
+    if(i===9)h+='</div><div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:.75rem;color:var(--muted);letter-spacing:1px;margin-bottom:.4rem;text-align:center">'+t('right_half')+'</div>';
     const slot='r32_'+i;
     const def=SIM_R32_DEFS[slot];
     const rw=rk[slot]; // real winner (w)
@@ -2572,6 +2575,7 @@ function renderSimulador(){
     const ov=_simOverrides[slot];if(ov!=null)return parseInt(ov);
     return null;
   }
+  h+='</div></div>';
   function getCands(r32slot){
     const w=getR32Winner(r32slot);if(w!=null)return[w];
     const admin=simGetAdminTeams(r32slot);
@@ -2596,23 +2600,27 @@ function renderSimulador(){
   // ── OCTAVOS ──────────────────────────────────────────────────────────────
   if(allR32Ready){
     h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.8rem 0 .4rem">Octavos</div>';
-    for(let i=1;i<=8;i++){
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem"><div>';
+    for(let i=1;i<=8;i++){if(i===5)h+='</div><div>';
       const slot='oct_'+i;const rw=rk[slot];const cur=simGetTeam(slot);
       if(rw!=null){h+=simFixedCard('OCT-'+i,rw);continue;}
       if(cur!=null&&_simOverrides[slot]!=null){h+=simFixedCard('OCT-'+i,cur);continue;}
       const cands=[...new Set([...getCands(SIM_OCT_FEEDS[slot][0]),...getCands(SIM_OCT_FEEDS[slot][1])])];
       h+=simSelectEl(slot,cands,cur,'OCT-'+i);
     }
+    h+='</div></div>';
     const octDone=Array.from({length:8},(_,i)=>'oct_'+(i+1)).every(s=>simGetTeam(s)!=null);
     if(octDone){
       h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.8rem 0 .4rem">Cuartos</div>';
-      for(let i=1;i<=4;i++){
+      h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem"><div>';
+      for(let i=1;i<=4;i++){if(i===3)h+='</div><div>';
         const slot='qf_'+i;const rw=rk[slot];const cur=simGetTeam(slot);
         if(rw!=null){h+=simFixedCard('QF-'+i,rw);continue;}
         if(cur!=null&&_simOverrides[slot]!=null){h+=simFixedCard('QF-'+i,cur);continue;}
         const[f1,f2]=SIM_QF_FEEDS[slot];
         h+=simSelectEl(slot,[simGetTeam(f1),simGetTeam(f2)].filter(v=>v!=null),cur,'QF-'+i);
       }
+      h+='</div></div>';
       const qfDone=Array.from({length:4},(_,i)=>'qf_'+(i+1)).every(s=>simGetTeam(s)!=null);
       if(qfDone){
         h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.8rem 0 .4rem">Semis</div>';
