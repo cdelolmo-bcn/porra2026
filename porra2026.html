@@ -2207,14 +2207,14 @@ function renderSimulador(){
   let lastFase='';
   for(const p of pendientes){
     if(p.fase!==lastFase){
-      h+='<div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.9rem 0 .4rem">'+p.fase+'</div>';
+      h+="<div style='font-family:\"Bebas Neue\",sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.9rem 0 .4rem'>"+p.fase+"</div>";
       lastFase=p.fase;
     }
     const teams=getTeamsForFase(p.faseKey);
     const override=_simOverrides[p.key];
     h+='<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;flex-wrap:wrap">';
     h+='<span style="font-size:.72rem;color:var(--muted);min-width:60px">'+p.faseKey.toUpperCase()+'-'+p.slot+'</span>';
-    h+='<select style="flex:1;max-width:220px;background:var(--surf2);border:1px solid '+(override!=null?'var(--accent)':'var(--border)')+';color:var(--text);border-radius:6px;padding:.28rem .5rem;font-size:.82rem" onchange="_simOverrides[''+p.key+'']=this.value===''?null:parseInt(this.value);renderSimulador()">';
+    h+='<select data-simkey="'+p.key+'" style="flex:1;max-width:220px;background:var(--surf2);border:1px solid '+(override!=null?'var(--accent)':'var(--border)')+';color:var(--text);border-radius:6px;padding:.28rem .5rem;font-size:.82rem" onchange="simOverrideChange(this)">';
     h+='<option value="">— '+t('sel_win')+' —</option>';
     if(teams){
       for(const ti of teams){
@@ -2278,6 +2278,12 @@ async function ejecutarSimulacion(){
   card.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+
+function simOverrideChange(el){
+  var key=el.getAttribute('data-simkey');
+  _simOverrides[key]=el.value===''?null:parseInt(el.value);
+  renderSimulador();
+}
 function resetSimulacion(){
   _simOverrides={};
   const card=document.getElementById('sim-result-card');
