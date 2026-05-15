@@ -753,7 +753,7 @@ function initSupabase(){
           history.replaceState(null,'',window.location.pathname+window.location.search);
         await onAuthChange(currentUser);
       }else if(event==='INITIAL_SESSION'){
-        // Solo procesar INITIAL_SESSION si hay usuario (evita sobrescribir login en curso)
+        // Solo procesar INITIAL_SESSION si hay usuario (sesión persistida)
         if(user){currentUser=user;await onAuthChange(currentUser);}
       }else if(event==='SIGNED_OUT'){
         currentUser=null;
