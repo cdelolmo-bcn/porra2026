@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.12</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.13</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -775,24 +775,10 @@ function initSupabase(){
     sb=window.supabase.createClient(SB_URL,SB_KEY,{
       auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}
     });
-    // Helper para queries públicas usando fetch directo (evita segundo cliente)
-    window._sbAnon={
-      from:(table)=>({
-        select:(cols)=>({
-          eq:(col,val)=>({
-            limit:(n)=>({maybeSingle:()=>_anonQ(table,cols,{[col]:val},null,n,true)}),
-            single:()=>_anonQ(table,cols,{[col]:val},null,1,true),
-            order:(col2,opts)=>_anonQ(table,cols,{[col]:val},{col:col2,asc:opts?.ascending!==false}),
-          }),
-          order:(col2,opts)=>({
-            limit:(n)=>_anonQ(table,cols,{},  {col:col2,asc:opts?.ascending!==false},n),
-            then:(fn)=>_anonQ(table,cols,{},{col:col2,asc:true},80).then(fn),
-          }),
-          limit:(n)=>({maybeSingle:()=>_anonQ(table,cols,{},null,n,true),single:()=>_anonQ(table,cols,{},null,1,true)}),
-          single:()=>_anonQ(table,cols,{},null,1,true),
-        }),
-      }),
-    };
+    // Cliente anónimo para queries públicas (warning "multiple clients" es solo aviso)
+    window._sbAnon=window.supabase.createClient(SB_URL,SB_KEY,{
+      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
+    });
     window._sbReady=true;
     console.log('[INIT] sb created, _sbAnon ready');
     // ── Escuchador global de sesión ──
@@ -1443,7 +1429,7 @@ async function loadRanking(){
   const renderRow=(r,rank,showRank)=>{
     const gc=rank===1?'g1':rank===2?'g2':rank===3?'g3':'',medal=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
     let row='<tr><td><span class="rk '+gc+'">'+(showRank?(medal||rank):'—')+'</span></td>';
-    row+='<td style="white-space:nowrap">'+(deadlinePassed()?'<button class="btn btn-ghost" style="font-size:.82rem;padding:.1rem .4rem;font-weight:700" onclick="viewBetDetail(\''+escJ(r.nombre)+'\'">'+ esc(r.nombre)+'</button>':'<strong>'+esc(r.nombre)+'</strong>')+badgeTip(r.logros)+'</td>';
+    row+='<td style="white-space:nowrap">'+(deadlinePassed()?'<button class="btn btn-ghost" style="font-size:.82rem;padding:.1rem .4rem;font-weight:700" data-nombre="'+esc(r.nombre)+'" onclick="viewBetDetail(this.getAttribute(\'data-nombre\'))">'+ esc(r.nombre)+'</button>':'<strong>'+esc(r.nombre)+'</strong>')+badgeTip(r.logros)+'</td>';
     row+='<td><span class="pbadge">'+(r.puntos||0)+'</span></td>';
     if(preDeadline)row+='<td>'+(r.paid?'<span class="paid-badge">✓ '+t('rank_confirmed')+'</span>':'<span class="unpaid-badge">Pendiente</span>')+'</td>';
     if(deadlinePassed()&&currentUser)row+='<td><button class="btn btn-ghost" style="padding:.1rem .4rem;font-size:.8rem" title="'+t('compare')+'" onclick="openCompare(\''+esc(r.nombre)+'\')">⚖️</button></td>';
@@ -1647,7 +1633,7 @@ async function loadAdmBets(container){
       +'<td style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">'
       +'<input type="checkbox" class="paid-chk" '+(r.paid?'checked':'')+' onchange="togPaid(\''+esc(r.nombre)+'\',this.checked,this)">'
       +paidH+'</td>'
-      +'<td><button class="btn btn-ghost" style="font-size:.75rem;padding:.25rem .6rem" onclick="viewBetDetail(\''+escJ(r.nombre)+'\'">'+t('view_bet')+'</button></td>'
+      +'<td><button class="btn btn-ghost" style="font-size:.75rem;padding:.25rem .6rem" data-nombre="'+esc(r.nombre)+'" onclick="viewBetDetail(this.getAttribute(\'data-nombre\'))">'+t('view_bet')+'</button></td>'
       +'</tr>';
   });
   container.innerHTML=h+'</tbody></table>';
@@ -1850,9 +1836,9 @@ function renderMyBetsList(data){
     h+='<span class="pbadge">'+r.puntos+' '+t('pts')+'</span>';
     h+='</div>';
     h+='<div style="display:flex;gap:.4rem">';
-    h+='<button class="btn btn-ghost" style="font-size:.76rem;padding:.28rem .6rem" onclick="viewBetDetail(\''+escJ(r.nombre)+'\'">'+t('view_bet')+'</button>';
+    h+='<button class="btn btn-ghost" style="font-size:.76rem;padding:.28rem .6rem" data-nombre="'+esc(r.nombre)+'" onclick="viewBetDetail(this.getAttribute(\'data-nombre\'))">'+t('view_bet')+'</button>';
     if(canEdit){
-      h+='<button class="btn btn-primary" style="font-size:.76rem;padding:.28rem .6rem" onclick="loadBetForEdit(\''+r.nombre+'\')">'+t('edit_bet')+'</button>';
+      h+='<button class="btn btn-primary" style="font-size:.76rem;padding:.28rem .6rem" data-nombre="'+esc(r.nombre)+'" onclick="loadBetForEdit(this.getAttribute(\'data-nombre\'))">'+t('edit_bet')+'</button>';
     }
     h+='</div></div>';
     // Quick summary
@@ -2023,7 +2009,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.12</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.13</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
