@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.13</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.14</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -2009,7 +2009,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.13</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.14</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -2270,10 +2270,11 @@ async function loadSimulador(){
   el.innerHTML='<div class="spin" style="margin:1.5rem auto;display:block"></div>';
   const{data,error}=await dbq(c=>(window._sbAnon||sb).from('resultados').select('data').eq('id',1).single());
   if(error||!data){
-    el.innerHTML='<div class="alert ainfo">⚠️ No hay resultados oficiales cargados aún. El administrador debe guardar al menos un resultado desde el panel de admin.</div>';
-    return;
+    // Sin datos reales — iniciar con objeto vacío para permitir simulación completa
+    _simRealData={ko:{},grupos:{},extras:{}};
+  } else {
+    _simRealData=JSON.parse(data.data);
   }
-  _simRealData=JSON.parse(data.data);
   _simOverrides={};
   renderSimulador();
 }
@@ -2292,18 +2293,35 @@ function renderSimulador(){
     {key:'final',label:'Final',slots:1},
   ];
 
-  // Equipos disponibles en cada fase (ganadores confirmados de la fase anterior)
-  // Para el simulador solo mostramos los cruces donde el ganador real NO está definido aún
+  // Merge real data with user overrides
+  const rkFull=Object.assign({},rk,_simOverrides);
+
+  // Build pendientes progressively:
+  // Show a phase only if the previous phase is fully resolved (real or override)
+  function faseComplete(faseKey,slots){
+    for(let i=1;i<=slots;i++){
+      if(rkFull[faseKey+'_'+i]==null)return false;
+    }
+    return true;
+  }
+  const prevSlotMap={r32:0,oct:16,qf:8,sf:4,final:2};
+  const prevFaseMap={r32:null,oct:'r32',qf:'oct',sf:'qf',final:'sf'};
+
   let pendientes=[];
   for(const fase of fases){
+    const prevFase=prevFaseMap[fase.key];
+    const prevSlots=prevSlotMap[fase.key];
+    // Show this phase if: no previous phase (r32) OR previous phase complete
+    const showFase=!prevFase||faseComplete(prevFase,prevSlots);
+    if(!showFase)break; // stop showing further phases
     for(let i=1;i<=fase.slots;i++){
       const key=fase.key+'_'+i;
-      if(rk[key]==null){
-        // Necesitamos saber qué equipos se enfrentan en este cruce
-        // Usamos los ganadores reales de la fase anterior como referencia
+      if(rkFull[key]==null){
         pendientes.push({fase:fase.label,key,faseKey:fase.key,slot:i});
       }
     }
+    // If this phase has pending slots, don't show further phases yet
+    if(pendientes.some(p=>p.faseKey===fase.key))break;
   }
 
   if(!pendientes.length){
