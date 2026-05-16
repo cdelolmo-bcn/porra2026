@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.31</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.38</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -343,7 +343,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
     </div>
     <div id="muro-input-wrap" style="display:none;display:flex;gap:.5rem;align-items:center;margin-top:.5rem">
       <input type="text" id="muro-input" placeholder="Escribe un comentario..." maxlength="280" style="flex:1" onkeydown="if(event.key==='Enter')enviarMensaje()">
-      <button class="btn btn-primary" onclick="enviarMensaje()" id="muro-send-btn">Enviar</button>
+      <button class="btn btn-primary" onclick="enviarMensaje()" id="muro-send-btn"><span id="lbl-muro-send">Enviar</span></button>
     </div>
   </div>
 </div>
@@ -434,6 +434,8 @@ function setLang(l){
   if(el('lbl-sim-title'))el('lbl-sim-title').textContent=t('sim_title')||'LABORATORIO WHAT IF';
   if(el('lbl-sim-sub'))el('lbl-sim-sub').textContent=t('sim_sub')||'¿Qué pasaría si...?';
   if(el('lbl-sim-calc'))el('lbl-sim-calc').textContent=t('sim_calc')||'Calcular ranking teórico';
+  const mp=document.getElementById('muro-input');if(mp)mp.placeholder=t('muro_placeholder')||'Escribe un comentario...';
+  if(el('lbl-muro-send'))el('lbl-muro-send').textContent=t('muro_send')||'Enviar';
   if(el('lbl-sim-reset'))el('lbl-sim-reset').textContent=t('sim_reset')||'Resetear';
   if(el('lbl-compare-select'))el('lbl-compare-select').textContent=t('compare_select')||'Elige una de tus porras para comparar';
   if(el('lbl-compare-title'))el('lbl-compare-title').textContent=t('compare_title')||'COMPARADOR DE PORRAS';
@@ -1801,9 +1803,13 @@ function admDetectSpainPos(){
   for(let i=1;i<=8;i++){if(gv('adm_oct_'+i+'_h')===SPAIN||gv('adm_oct_'+i+'_a')===SPAIN)return'r16';}
   for(let i=1;i<=16;i++){
     const h=gv('adm_r32_'+i+'_h'),a=gv('adm_r32_'+i+'_a'),w=gv('adm_r32_'+i+'_w');
-    if(h===SPAIN||a===SPAIN){return w===SPAIN?'r32s':'groups_out';}
+    if(h===SPAIN||a===SPAIN){
+      if(w===SPAIN)return null; // Spain won R32, look further (oct+)
+      if(w!=null)return'r32s'; // Spain lost in R32
+      return'r32s'; // Spain in R32 but no winner yet — still r32s
+    }
   }
-  return null;
+  return'groups_out';
 }
 
 async function saveAdmRes(){
@@ -2207,7 +2213,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.31</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.38</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -2548,17 +2554,28 @@ function simGetUsedTeams(){
 
 function simDetectSpainPos(rk){
   const SP=28;
+  // Check from final backwards using only CONFIRMED winners (not candidates)
   if(simGetTeam('final_1')===SP)return 'champion';
   if(simGetTeam('sf_1')===SP||simGetTeam('sf_2')===SP)return 'runner_up';
-  for(const feeds of Object.values(SIM_QF_FEEDS)){if(simGetTeam(feeds[0])===SP||simGetTeam(feeds[1])===SP)return 'semis';}
-  for(const feeds of Object.values(SIM_OCT_FEEDS)){if(simGetTeam(feeds[0])===SP||simGetTeam(feeds[1])===SP)return 'quarters';}
+  for(let i=1;i<=4;i++){if(simGetTeam('qf_'+i)===SP)return 'semis';}
+  for(let i=1;i<=8;i++){if(simGetTeam('oct_'+i)===SP)return 'quarters';}
+  // Check R32 winners
   for(let i=1;i<=16;i++){
-    const rw=rk['r32_'+i];if(rw===SP)return 'r32s';
+    const rw=rk['r32_'+i];
+    const ov=_simOverrides['r32_'+i]!=null?parseInt(_simOverrides['r32_'+i]):null;
+    const winner=rw!=null?rw:ov;
+    if(winner===SP)return 'r16'; // Spain won R32 = made it to oct
+    // Check if Spain is a participant in this R32 slot
     const admin=simGetAdminTeams('r32_'+i);
-    if(admin){if(parseInt(admin.h)===SP||parseInt(admin.a)===SP)return 'groups_out';}
-    else{const oh=_simOverrides['r32_'+i+'_h'],oa=_simOverrides['r32_'+i+'_a'];if(parseInt(oh)===SP||parseInt(oa)===SP)return 'groups_out';}
+    const oh=admin?parseInt(admin.h):(_simOverrides['r32_'+i+'_h']!=null?parseInt(_simOverrides['r32_'+i+'_h']):null);
+    const oa=admin?parseInt(admin.a):(_simOverrides['r32_'+i+'_a']!=null?parseInt(_simOverrides['r32_'+i+'_a']):null);
+    if(oh===SP||oa===SP){
+      if(winner!=null&&winner!==SP)return 'r32s'; // Spain lost in R32
+      return 'r32s'; // Spain in R32 (with or without winner yet)
+    }
   }
-  return null;
+  // Spain not found in any R32 slot
+  return 'groups_out';
 }
 
 function simFixedCard(label,team){
@@ -2688,9 +2705,8 @@ function renderSimulador(){
     h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.8rem 0 .4rem">Octavos</div>';
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem"><div>';
     for(let i=1;i<=8;i++){if(i===5)h+='</div><div>';
-      const slot='oct_'+i;const rw=rk[slot];const cur=simGetTeam(slot);
-      if(rw!=null){h+=simFixedCard('OCT-'+i,rw);continue;}
-      if(cur!=null&&_simOverrides[slot]!=null){h+=simFixedCard('OCT-'+i,cur);continue;}
+      const slot='oct_'+i;const rw=rk[slot];const cur=_simOverrides[slot]!=null?parseInt(_simOverrides[slot]):null;
+      if(rw!=null){h+=simFixedCard('OCT-'+i,rw);continue;} // real data — fixed
       const cands=[...new Set([...getCands(SIM_OCT_FEEDS[slot][0]),...getCands(SIM_OCT_FEEDS[slot][1])])];
       h+=simSelectEl(slot,cands,cur,'OCT-'+i);
     }
@@ -2700,9 +2716,8 @@ function renderSimulador(){
       h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.8rem 0 .4rem">Cuartos</div>';
       h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem"><div>';
       for(let i=1;i<=4;i++){if(i===3)h+='</div><div>';
-        const slot='qf_'+i;const rw=rk[slot];const cur=simGetTeam(slot);
+        const slot='qf_'+i;const rw=rk[slot];const cur=_simOverrides[slot]!=null?parseInt(_simOverrides[slot]):null;
         if(rw!=null){h+=simFixedCard('QF-'+i,rw);continue;}
-        if(cur!=null&&_simOverrides[slot]!=null){h+=simFixedCard('QF-'+i,cur);continue;}
         const[f1,f2]=SIM_QF_FEEDS[slot];
         h+=simSelectEl(slot,[simGetTeam(f1),simGetTeam(f2)].filter(v=>v!=null),cur,'QF-'+i);
       }
@@ -2711,19 +2726,17 @@ function renderSimulador(){
       if(qfDone){
         h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.8rem 0 .4rem">Semis</div>';
         for(let i=1;i<=2;i++){
-          const slot='sf_'+i;const rw=rk[slot];const cur=simGetTeam(slot);
+          const slot='sf_'+i;const rw=rk[slot];const cur=_simOverrides[slot]!=null?parseInt(_simOverrides[slot]):null;
           if(rw!=null){h+=simFixedCard('SF-'+i,rw);continue;}
-          if(cur!=null&&_simOverrides[slot]!=null){h+=simFixedCard('SF-'+i,cur);continue;}
           const[f1,f2]=SIM_SF_FEEDS[slot];
           h+=simSelectEl(slot,[simGetTeam(f1),simGetTeam(f2)].filter(v=>v!=null),cur,'SF-'+i);
         }
         const sfDone=Array.from({length:2},(_,i)=>'sf_'+(i+1)).every(s=>simGetTeam(s)!=null);
         if(sfDone){
           h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);letter-spacing:1px;margin:.8rem 0 .4rem">Final</div>';
-          const rwF=rk['final_1'];const curF=simGetTeam('final_1');
+          const rwF=rk['final_1'];const curF=_simOverrides['final_1']!=null?parseInt(_simOverrides['final_1']):null;
           if(rwF!=null){h+=simFixedCard('FINAL',rwF);}
-          else if(curF!=null&&_simOverrides['final_1']!=null){h+=simFixedCard('FINAL',curF);}
-          else h+=simSelectEl('final_1',[simGetTeam('sf_1'),simGetTeam('sf_2')].filter(v=>v!=null),null,'FINAL');
+          else h+=simSelectEl('final_1',[simGetTeam('sf_1'),simGetTeam('sf_2')].filter(v=>v!=null),curF,'FINAL');
         }
       }
     }
