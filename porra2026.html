@@ -257,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.51</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.52</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -801,10 +801,9 @@ function initSupabase(){
       if(event==='TOKEN_REFRESHED'){console.log('[AUTH] TOKEN_REFRESHED — reloading active page data');const ap=document.querySelector('.page.active');if(ap){const pid=ap.id.replace('page-','');if(pid==='ranking')loadRanking();if(pid==='muro')cargarMuro();}}
       if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
         currentUser=user;
+        console.log('[AUTH] processing', event, '— calling onAuthChange');
         if(window.location.hash.includes('access_token'))
           history.replaceState(null,'',window.location.pathname);
-        // Wait for SDK to settle after token refresh before allowing queries
-        await new Promise(r=>setTimeout(r,500));
         await onAuthChange(currentUser);
       }else if(event==='INITIAL_SESSION'){
         // Solo procesar INITIAL_SESSION si hay usuario (sesión persistida)
@@ -2302,7 +2301,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.51</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.52</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
