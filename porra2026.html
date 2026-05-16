@@ -1954,6 +1954,19 @@ async function loadRanking(){
     return;
   }
   if(!data?.length){rc.innerHTML='<div class="card"><div style="text-align:center;padding:2.5rem;color:var(--muted)">'+t('no_bets')+'</div></div>';return;}
+  // Check if Mundial has finished
+  let mundialFinal=false,campeon=null,finalExtras={};
+  try{
+    const{data:resData}=await dbq(c=>(window._sbAnon||sb).from('resultados').select('data').eq('id',1).single());
+    if(resData){
+      const rd=JSON.parse(resData.data);
+      const finSlot=rd.ko?.fin_1||rd.ko?.final_1;
+      const finW=finSlot!=null?(typeof finSlot==='object'?finSlot.w:finSlot):null;
+      if(finW!=null&&rd.extras?.gol&&rd.extras?.jug){
+        mundialFinal=true;campeon=finW;finalExtras=rd.extras||{};
+      }
+    }
+  }catch(e){}
   const PRICE=5;
   const total=data.length;
   const paid=data.filter(r=>r.paid).length;
@@ -1974,6 +1987,41 @@ async function loadRanking(){
   h+='</div>';
   if(preDeadline)h+='<div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem;background:var(--surf2);border:1px solid var(--border);border-radius:7px;padding:.55rem .75rem;line-height:1.5">'+t('rank_pre_warn')+'</div>';
   h+='</div>';
+  // ── MUNDIAL FINALIZADO ──────────────────────────────────────────────────
+  if(mundialFinal&&paidBets.length>0){
+    const sorted=[...paidBets].sort((a,b)=>b.puntos-a.puntos);
+    const maxPts=sorted[0].puntos;
+    const winners=sorted.filter(r=>r.puntos===maxPts);
+    const rest=sorted.filter(r=>r.puntos<maxPts);
+    const secondPts=rest.length>0?rest[0].puntos:null;
+    const seconds=secondPts!=null?rest.filter(r=>r.puntos===secondPts):[];
+    let prizes=[];
+    if(winners.length>1){
+      winners.forEach(w=>prizes.push({nom:w.nombre,share:(moneyConfirmed/winners.length).toFixed(2),pos:1}));
+    }else{
+      prizes.push({nom:winners[0].nombre,share:(moneyConfirmed*0.7).toFixed(2),pos:1});
+      if(seconds.length>0){
+        const share2=moneyConfirmed*0.3/seconds.length;
+        seconds.forEach(s=>prizes.push({nom:s.nombre,share:share2.toFixed(2),pos:2}));
+      }
+    }
+    h+='<div class="card" style="margin-bottom:1.2rem;border:2px solid var(--gold);text-align:center">';
+    h+='<div style="font-size:2.5rem;margin-bottom:.3rem">🏆</div>';
+    h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;color:var(--gold);letter-spacing:2px;margin-bottom:.3rem">El Mundial ha acabado!</div>';
+    h+='<div style="font-size:.85rem;color:var(--muted);margin-bottom:.2rem">'+fi(campeon,true)+' '+tn(campeon)+' — Campeón del Mundo 🏆</div>';
+    if(finalExtras.gol)h+='<div style="font-size:.78rem;color:var(--muted)">⚽ Máximo Goleador: <strong style="color:var(--text)">'+esc(finalExtras.gol)+'</strong></div>';
+    if(finalExtras.jug)h+='<div style="font-size:.78rem;color:var(--muted);margin-bottom:.8rem">🌟 Jugador del Torneo: <strong style="color:var(--text)">'+esc(finalExtras.jug)+'</strong></div>';
+    h+='<div style="display:flex;justify-content:center;align-items:flex-end;gap:1rem;margin:1rem 0">';
+    if(seconds.length>0){h+='<div style="text-align:center;min-width:80px"><div style="font-size:1.8rem">🥈</div>';seconds.forEach(s=>h+='<div style="font-size:.82rem;font-weight:700">'+esc(s.nombre)+'</div>');h+='<div style="font-size:.72rem;color:var(--muted)">'+secondPts+' pts</div></div>';}
+    h+='<div style="text-align:center;min-width:80px"><div style="font-size:2.2rem">🥇</div>';winners.forEach(w=>h+='<div style="font-size:.9rem;font-weight:700;color:var(--gold)">'+esc(w.nombre)+'</div>');h+='<div style="font-size:.78rem;color:var(--muted)">'+maxPts+' pts</div></div>';
+    if(seconds.length>0)h+='<div style="min-width:80px"></div>';
+    h+='</div>';
+    h+='<div style="border-top:1px solid var(--border);padding-top:.8rem">';
+    h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.9rem;color:var(--gold);letter-spacing:1px;margin-bottom:.5rem">Reparto de premios</div>';
+    prizes.forEach(prize=>{h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem .6rem;background:var(--surf3);border-radius:6px;margin-bottom:.3rem;max-width:320px;margin-left:auto;margin-right:auto"><span>'+(prize.pos===1?'🥇':'🥈')+' <strong>'+esc(prize.nom)+'</strong></span><span style="font-weight:700;color:var(--gold)">'+prize.share+'€</span></div>';});
+    h+='</div></div>';
+  }
+
   h+='<div class="card"><table class="rank-table" style="table-layout:fixed;width:100%"><thead><tr><th style="width:2.5rem">#</th><th></th><th style="width:4rem;text-align:center">'+t('pts')+'</th>';
   if(preDeadline)h+='<th>'+t('rank_status_col')+'</th>';
   h+=(deadlinePassed()&&currentUser?'<th style="width:2.5rem"></th>':'<th style="width:2.5rem"></th>')+'</tr></thead><tbody>';
