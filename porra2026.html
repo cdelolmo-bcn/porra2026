@@ -1987,6 +1987,13 @@ async function loadRanking(){
   h+='</div>';
   if(preDeadline)h+='<div style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem;background:var(--surf2);border:1px solid var(--border);border-radius:7px;padding:.55rem .75rem;line-height:1.5">'+t('rank_pre_warn')+'</div>';
   h+='</div>';
+  h+='<div class="card"><table class="rank-table" style="table-layout:fixed;width:100%"><thead><tr><th style="width:2.5rem">#</th><th></th><th style="width:4rem;text-align:center">'+t('pts')+'</th>';
+  if(preDeadline)h+='<th>'+t('rank_status_col')+'</th>';
+  h+=(deadlinePassed()&&currentUser?'<th style="width:2.5rem"></th>':'<th style="width:2.5rem"></th>')+'</tr></thead><tbody>';
+  // For pre-deadline: number only paid bets, show pending separately at bottom
+  const paidBets=data.filter(r=>r.paid);
+  const pendingBets=data.filter(r=>!r.paid);
+
   // ── MUNDIAL FINALIZADO ──────────────────────────────────────────────────
   if(mundialFinal&&paidBets.length>0){
     const sorted=[...paidBets].sort((a,b)=>b.puntos-a.puntos);
@@ -2022,12 +2029,7 @@ async function loadRanking(){
     h+='</div></div>';
   }
 
-  h+='<div class="card"><table class="rank-table" style="table-layout:fixed;width:100%"><thead><tr><th style="width:2.5rem">#</th><th></th><th style="width:4rem;text-align:center">'+t('pts')+'</th>';
-  if(preDeadline)h+='<th>'+t('rank_status_col')+'</th>';
-  h+=(deadlinePassed()&&currentUser?'<th style="width:2.5rem"></th>':'<th style="width:2.5rem"></th>')+'</tr></thead><tbody>';
-  // For pre-deadline: number only paid bets, show pending separately at bottom
-  const paidBets=data.filter(r=>r.paid);
-  const pendingBets=data.filter(r=>!r.paid);
+
 
   function badgeTip(logros){
     var earned=(logros||[]).filter(function(id){return BADGES_DEF[id];});
