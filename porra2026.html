@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.38</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.39</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1713,10 +1713,18 @@ async function buildAdmBracket(container){
     admRefreshR32Selects();
     // Step 3: NOW restore R32 winners (options exist now)
     for(let i=1;i<=16;i++){const k='r32_'+i,d=saved.ko?.[k]||{};sv('adm_'+k+'_w',d.w);}
-    // Step 4: propagate R32 winners to Oct+ and build their options
+    // Step 4: propagate R32 winners to Oct+ and build Oct options
     _admPropAndUpdate();
-    // Step 5: restore Oct/QF/SF/Fin winners
-    ['oct','qf','sf'].forEach(p=>{const n={oct:8,qf:4,sf:2}[p];for(let i=1;i<=n;i++){const k=p+'_'+i,d=saved.ko?.[k]||{};sv('adm_'+k+'_w',d.w);}});
+    // Step 5: restore Oct winners
+    for(let i=1;i<=8;i++){const k='oct_'+i,d=saved.ko?.[k]||{};sv('adm_'+k+'_w',d.w);}
+    // Step 6: propagate Oct winners to QF and build QF options
+    _admPropAndUpdate();
+    // Step 7: restore QF winners
+    for(let i=1;i<=4;i++){const k='qf_'+i,d=saved.ko?.[k]||{};sv('adm_'+k+'_w',d.w);}
+    // Step 8: propagate QF winners to SF and build SF options
+    _admPropAndUpdate();
+    // Step 9: restore SF and Fin winners
+    for(let i=1;i<=2;i++){const k='sf_'+i,d=saved.ko?.[k]||{};sv('adm_'+k+'_w',d.w);}
     sv('adm_fin_1_w',saved.ko?.fin_1?.w);
     // Extras
     sv('adm_ext_camp',saved.extras?.camp);sv('adm_ext_esp',saved.extras?.esp);
@@ -2213,7 +2221,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.38</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.39</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
