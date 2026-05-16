@@ -256,7 +256,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.45</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.47</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -845,14 +845,16 @@ function initSupabase(){
       if(!currentUser)return;
       const away=Date.now()-_lastVisible;
       console.log('[AUTH] tab visible after',Math.round(away/1000),'s');
-      // If away less than 55 minutes, session should still be valid — just reload data
+      // If away less than 55 minutes, session should still be valid
+      // Only reload data if away more than 2 minutes to avoid blocking sb during token refresh
       if(away<55*60*1000){
-        const ap=document.querySelector('.page.active');
-        if(ap){
-          const pid=ap.id.replace('page-','');
-          if(pid==='ranking')loadRanking();
-          if(pid==='muro')cargarMuro();
-          if(pid==='porras')loadAllMyBets();
+        if(away>2*60*1000){
+          const ap=document.querySelector('.page.active');
+          if(ap){
+            const pid=ap.id.replace('page-','');
+            if(pid==='ranking')loadRanking();
+            if(pid==='muro')cargarMuro();
+          }
         }
         return;
       }
@@ -1012,11 +1014,14 @@ async function deleteAccount(){
 
 async function logout(){
   closeUserMenu();
-  await sb.auth.signOut();
-  // onAuthStateChange SIGNED_OUT will call onAuthChange(null)
-  // but also update UI immediately in case event is slow
   currentUser=null;
   isAdmin=false;
+  // Try signOut with timeout — if sb is blocked, clear session manually
+  const signOutPromise=sb.auth.signOut().catch(()=>{});
+  const timeout=new Promise(r=>setTimeout(r,3000));
+  await Promise.race([signOutPromise,timeout]);
+  // Clear Supabase session from localStorage regardless
+  Object.keys(localStorage).filter(k=>k.startsWith('sb-')||k.includes('supabase')).forEach(k=>localStorage.removeItem(k));
   await onAuthChange(null);
   showPage('ranking');
 }
@@ -2290,7 +2295,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.45</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.47</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
