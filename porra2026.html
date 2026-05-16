@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Porra Mundial 2026</title>
 <script>
@@ -256,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.47</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.50</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -786,7 +787,8 @@ function initSupabase(){
     });
     // Cliente anónimo para queries públicas (warning "multiple clients" es solo aviso)
     window._sbAnon=window.supabase.createClient(SB_URL,SB_KEY,{
-      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
+      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,
+        storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}}
     });
     window._sbReady=true;
     console.log('[INIT] sb created, _sbAnon ready');
@@ -801,6 +803,8 @@ function initSupabase(){
         currentUser=user;
         if(window.location.hash.includes('access_token'))
           history.replaceState(null,'',window.location.pathname);
+        // Wait for SDK to settle after token refresh before allowing queries
+        await new Promise(r=>setTimeout(r,500));
         await onAuthChange(currentUser);
       }else if(event==='INITIAL_SESSION'){
         // Solo procesar INITIAL_SESSION si hay usuario (sesión persistida)
@@ -2295,7 +2299,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.47</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.50</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
