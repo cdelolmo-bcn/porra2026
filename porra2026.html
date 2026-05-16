@@ -257,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.54</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.56</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -380,7 +380,6 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 // ══ DEADLINE ══
 const DEADLINE=new Date('2026-06-11T20:00:00Z'); // 22:00 España (CEST=UTC+2)
 // DEBUG MODE ON BY DEFAULT — remove for production
-if(!localStorage.getItem('debug_started'))localStorage.setItem('debug_started','1');
 function deadlinePassed(){return localStorage.getItem('debug_started')==='1'||new Date()>=DEADLINE;}
 function renderDeadline(){
   const w=document.getElementById('deadline-wrap');if(!w)return;
@@ -1599,7 +1598,14 @@ function getTeamsInRound(ko, round){
 
 function calcScore(porra,real){
   let pts=0;
-  const pk=porra.ko||{}, rk=real.ko||{};
+  const pk=porra.ko||{};
+  // Normalize real ko: extract .w from {h,a,w} objects if needed
+  const rawRk=real.ko||{};
+  const rk={};
+  Object.entries(rawRk).forEach(([k,v])=>{
+    const key=k==='fin_1'?'final_1':k;
+    rk[key]=(v!=null&&typeof v==='object')?v.w:v;
+  });
 
   // ── Oct (16pts): r32 winners en slot correcto (cruce exacto) ──
   for(let i=1;i<=16;i++){const pw=pk['r32_'+i],rw=rk['r32_'+i];if(pw!=null&&rw!=null&&pw===rw)pts+=1;}
@@ -2310,7 +2316,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.54</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.56</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
