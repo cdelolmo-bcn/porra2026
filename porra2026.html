@@ -257,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.50</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.51</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -796,9 +796,9 @@ function initSupabase(){
     // No usamos lock — cada evento se procesa independientemente.
     // onAuthChange es idempotente (solo actualiza UI), no hay riesgo de carrera real.
     sb.auth.onAuthStateChange(async(event,session)=>{
-      console.log('[AUTH] event:', event, 'user:', session?.user?.email||null);
+      console.log('[AUTH] event:', event, 'user:', session?.user?.email||null, 'currentUser:', currentUser?.email||null, 'time:', new Date().toISOString());
       const user=session?.user||null;
-      if(event==='TOKEN_REFRESHED'){const ap=document.querySelector('.page.active');if(ap){const pid=ap.id.replace('page-','');if(pid==='ranking')loadRanking();if(pid==='muro')cargarMuro();}}
+      if(event==='TOKEN_REFRESHED'){console.log('[AUTH] TOKEN_REFRESHED — reloading active page data');const ap=document.querySelector('.page.active');if(ap){const pid=ap.id.replace('page-','');if(pid==='ranking')loadRanking();if(pid==='muro')cargarMuro();}}
       if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
         currentUser=user;
         if(window.location.hash.includes('access_token'))
@@ -826,6 +826,7 @@ function initSupabase(){
         const{data:{session}}=await sb.auth.getSession();
         console.log('[AUTH] OAuth poll',_oauthTries,'session:',session?.user?.email||'null');
         if(session?.user){
+          console.log('[AUTH] OAuth poll found session — clearing interval');
           clearInterval(_oauthPoll);
           if(!currentUser){currentUser=session.user;await onAuthChange(currentUser);}
         } else if(_oauthTries>=10){
@@ -848,7 +849,7 @@ function initSupabase(){
       if(document.visibilityState!=='visible'){_lastVisible=Date.now();return;}
       if(!currentUser)return;
       const away=Date.now()-_lastVisible;
-      console.log('[AUTH] tab visible after',Math.round(away/1000),'s');
+      console.log('[AUTH] tab visible after',Math.round(away/1000),'s, currentUser:', currentUser?.email||null, 'time:', new Date().toISOString());
       // If away less than 55 minutes, session should still be valid
       // Only reload data if away more than 2 minutes to avoid blocking sb during token refresh
       if(away<55*60*1000){
@@ -896,11 +897,11 @@ function initSupabase(){
 // Always use this for Supabase queries. Picks anon client for reads,
 // auth client for writes. Times out after 10s instead of hanging forever.
 async function dbq(queryFn, requiresAuth=false){
-  console.log('[DBQ] requiresAuth:', requiresAuth, 'currentUser:', !!currentUser);
+  console.log('[DBQ] requiresAuth:', requiresAuth, 'currentUser:', !!currentUser, 'time:', new Date().toISOString());
   const client = requiresAuth ? sb : (window._sbAnon||sb);
   return new Promise((resolve)=>{
     const timer = setTimeout(()=>{
-      console.warn('[dbq] timeout');
+      console.error('[DBQ] TIMEOUT after 10s — sb may be blocked. requiresAuth:', requiresAuth, 'currentUser:', currentUser?.email||null);
       resolve({data:null, error:{message:'Timeout — recarga la página', code:'TIMEOUT'}});
     }, 10000);
     queryFn(client).then(result=>{
@@ -913,6 +914,7 @@ async function dbq(queryFn, requiresAuth=false){
   });
 }
 async function onAuthChange(user){
+  console.log('[AUTH] onAuthChange called with:', user?.email||null, 'stack:', new Error().stack.split('\n')[2]?.trim());
   isAdmin=false;
   if(user){
     // Check admin role
@@ -1017,6 +1019,7 @@ async function deleteAccount(){
 }
 
 async function logout(){
+  console.log('[AUTH] logout called, sb state check...');
   closeUserMenu();
   currentUser=null;
   isAdmin=false;
@@ -2299,7 +2302,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.50</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.51</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
