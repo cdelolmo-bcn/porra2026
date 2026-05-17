@@ -257,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.71</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.73</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -2453,26 +2453,14 @@ function calcScore(porra,real){
     rk[key]=(v!=null&&typeof v==='object')?v.w:v;
   });
 
-  // ── Oct (16pts): r32 winners en slot correcto (cruce exacto) ──
-  for(let i=1;i<=16;i++){const pw=pk['r32_'+i],rw=rk['r32_'+i];if(pw!=null&&rw!=null&&pw===rw)pts+=1;}
-  // ── QF (8pts): oct winners en slot correcto ──
-  for(let i=1;i<=8; i++){const pw=pk['oct_'+i],rw=rk['oct_'+i];if(pw!=null&&rw!=null&&pw===rw)pts+=1;}
-  // ── SF (4pts): qf winners en slot correcto (cruce exacto) ──
-  for(let i=1;i<=4; i++){const pw=pk['qf_'+i], rw=rk['qf_'+i]; if(pw!=null&&rw!=null&&pw===rw)pts+=1;}
-  // ── Final (2pts): sf winners por conjunto, sin importar lado ──
-  {const pFin=new Set([pk['sf_1'],pk['sf_2']].filter(v=>v!=null));
-   const rFin=new Set([rk['sf_1'],rk['sf_2']].filter(v=>v!=null));
-   pFin.forEach(t=>{if(rFin.has(t))pts+=1;});}
-
-  // ── R32 (32pts max): equipos que entran al bracket ──
-  // Se reconstruye desde las predicciones de grupos
+  // ── R32 (max 32pts): 1pt por cada país en slot correcto (h y a) ──
+  // Se reconstruye el bracket desde predicciones de grupos vs resultados de grupos
   try{
-    if(porra.grupos&&real.grupos){
+    if(porra.grupos&&real.grupos&&Object.keys(real.grupos).length>0){
       const pSt=calcStandings(Object.fromEntries(Object.entries(porra.grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
       const rSt=calcStandings(Object.fromEntries(Object.entries(real.grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
       const pR32=bR32(pSt,getBT(pSt).map);
       const rR32=bR32(rSt,getBT(rSt).map);
-      // 1pt por cada tie donde ambos equipos (h y a) coinciden en el mismo slot
       pR32.forEach((tie,i)=>{
         const rt=rR32[i];
         if(!rt)return;
@@ -2480,9 +2468,18 @@ function calcScore(porra,real){
         if(tie.a!=null&&rt.a!=null&&tie.a===rt.a)pts+=1;
       });
     }
-  }catch(e){
-    // Fallback: 1pt por ganador R32 en slot correcto (ya contados arriba en Oct loop)
-  }
+  }catch(e){}
+
+  // ── Octavos (max 8pts): 1pt por ganador acertado en slot correcto ──
+  for(let i=1;i<=8;i++){const pw=pk['oct_'+i],rw=rk['oct_'+i];if(pw!=null&&rw!=null&&pw===rw)pts+=1;}
+
+  // ── QF (max 4pts): 1pt por ganador acertado en slot correcto ──
+  for(let i=1;i<=4;i++){const pw=pk['qf_'+i],rw=rk['qf_'+i];if(pw!=null&&rw!=null&&pw===rw)pts+=1;}
+
+  // ── SF (max 2pts): 1pt por semifinalista acertado, sin importar lado ──
+  {const pFin=new Set([pk['sf_1'],pk['sf_2']].filter(v=>v!=null));
+   const rFin=new Set([rk['sf_1'],rk['sf_2']].filter(v=>v!=null));
+   pFin.forEach(t=>{if(rFin.has(t))pts+=1;});}
 
   // ── Campeón: 3pts ──
   if(rk['final_1']!=null&&pk['final_1']!=null&&rk['final_1']===pk['final_1'])pts+=3;
@@ -3163,7 +3160,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.71</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.73</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
