@@ -257,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.61</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.63</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -578,43 +578,80 @@ function fi(i,sm){return i==null?'':'<img src="https://flagcdn.com/20x15/'+ISO[i
 
 const FIFA_RK=[15,60,25,41,30,65,55,19,6,8,83,43,16,40,27,22,10,82,34,23,7,18,38,44,9,29,21,85,2,69,61,17,1,14,57,31,3,28,24,63,5,46,50,13,4,11,74,33];
 
-const MS={'0|1':{n:1,c:'Mexico City',e:'11/06 22:00'},'2|3':{n:2,c:'Guadalajara',e:'12/06 05:00'},
-  '4|5':{n:3,c:'Toronto',e:'12/06 22:00'},'12|13':{n:4,c:'Los Angeles',e:'13/06 04:00'},
-  '6|7':{n:8,c:'San Francisco',e:'13/06 22:00'},'8|9':{n:7,c:'New York/NJ',e:'14/06 01:00'},
-  '10|11':{n:5,c:'Boston',e:'14/06 04:00'},'14|15':{n:6,c:'Vancouver',e:'14/06 07:00'},
-  '16|17':{n:10,c:'Houston',e:'14/06 20:00'},'20|21':{n:11,c:'Dallas',e:'14/06 23:00'},
-  '18|19':{n:9,c:'Philadelphia',e:'15/06 02:00'},'22|23':{n:12,c:'Monterrey',e:'15/06 05:00'},
-  '28|29':{n:14,c:'Atlanta',e:'15/06 19:00'},'24|25':{n:16,c:'Seattle',e:'15/06 22:00'},
-  '30|31':{n:13,c:'Miami',e:'16/06 01:00'},'26|27':{n:15,c:'Los Angeles',e:'16/06 04:00'},
-  '32|33':{n:17,c:'New York/NJ',e:'16/06 22:00'},'34|35':{n:18,c:'Boston',e:'17/06 01:00'},
-  '36|37':{n:19,c:'Kansas City',e:'17/06 04:00'},'38|39':{n:20,c:'San Francisco',e:'17/06 07:00'},
-  '40|41':{n:23,c:'Houston',e:'17/06 20:00'},'44|45':{n:22,c:'Dallas',e:'17/06 23:00'},
-  '46|47':{n:21,c:'Toronto',e:'18/06 02:00'},'42|43':{n:24,c:'Mexico City',e:'18/06 05:00'},
-  '2|1':{n:25,c:'Atlanta',e:'18/06 19:00'},'7|5':{n:26,c:'Los Angeles',e:'18/06 22:00'},
-  '4|6':{n:27,c:'Vancouver',e:'19/06 01:00'},'0|2':{n:28,c:'Guadalajara',e:'19/06 04:00'},
-  '12|14':{n:32,c:'Seattle',e:'19/06 22:00'},'11|9':{n:30,c:'Boston',e:'20/06 01:00'},
-  '8|10':{n:29,c:'Philadelphia',e:'20/06 03:30'},'15|13':{n:31,c:'San Francisco',e:'20/06 06:00'},
-  '20|22':{n:35,c:'Houston',e:'20/06 20:00'},'16|18':{n:33,c:'Toronto',e:'20/06 23:00'},
-  '19|17':{n:34,c:'Kansas City',e:'21/06 03:00'},'23|21':{n:36,c:'Monterrey',e:'21/06 07:00'},
-  '28|30':{n:38,c:'Atlanta',e:'21/06 19:00'},'24|26':{n:39,c:'Los Angeles',e:'21/06 22:00'},
-  '31|29':{n:37,c:'Miami',e:'22/06 01:00'},'27|25':{n:40,c:'Vancouver',e:'22/06 04:00'},
-  '36|38':{n:43,c:'Dallas',e:'22/06 20:00'},'32|34':{n:42,c:'Philadelphia',e:'23/06 00:00'},
-  '35|33':{n:41,c:'New York/NJ',e:'23/06 03:00'},'39|37':{n:44,c:'San Francisco',e:'23/06 06:00'},
-  '40|42':{n:47,c:'Houston',e:'23/06 20:00'},'44|46':{n:45,c:'Boston',e:'23/06 23:00'},
-  '47|45':{n:46,c:'Toronto',e:'24/06 02:00'},'43|41':{n:48,c:'Guadalajara',e:'24/06 05:00'},
-  '7|4':{n:51,c:'Vancouver',e:'24/06 22:00'},'5|6':{n:52,c:'Seattle',e:'24/06 22:00'},
-  '11|8':{n:49,c:'Miami',e:'25/06 01:00'},'9|10':{n:50,c:'Atlanta',e:'25/06 01:00'},
-  '3|0':{n:53,c:'Mexico City',e:'25/06 04:00'},'1|2':{n:54,c:'Monterrey',e:'25/06 04:00'},
-  '17|18':{n:55,c:'Philadelphia',e:'25/06 23:00'},'19|16':{n:56,c:'New York/NJ',e:'25/06 23:00'},
-  '21|22':{n:57,c:'Dallas',e:'26/06 02:00'},'23|20':{n:58,c:'Kansas City',e:'26/06 02:00'},
-  '15|12':{n:59,c:'Los Angeles',e:'26/06 05:00'},'13|14':{n:60,c:'San Francisco',e:'26/06 05:00'},
-  '35|32':{n:61,c:'Boston',e:'26/06 22:00'},'33|34':{n:62,c:'Toronto',e:'26/06 22:00'},
-  '29|30':{n:65,c:'Houston',e:'27/06 03:00'},'31|28':{n:66,c:'Guadalajara',e:'27/06 03:00'},
-  '25|26':{n:63,c:'Seattle',e:'27/06 06:00'},'27|24':{n:64,c:'Vancouver',e:'27/06 06:00'},
-  '47|44':{n:67,c:'New York/NJ',e:'28/06 00:00'},'45|46':{n:68,c:'Philadelphia',e:'28/06 00:00'},
-  '43|40':{n:71,c:'Miami',e:'28/06 02:30'},'41|42':{n:72,c:'Atlanta',e:'28/06 02:30'},
-  '37|38':{n:69,c:'Kansas City',e:'28/06 05:00'},'39|36':{n:70,c:'Dallas',e:'28/06 05:00'}
-};
+const MS={
+  '0|1':{n:1,c:'Mexico City',e:'11/06 22:00'},
+  '2|3':{n:2,c:'Guadalajara',e:'12/06 05:00'},
+  '4|5':{n:3,c:'Toronto',e:'12/06 22:00'},
+  '12|13':{n:4,c:'Los Angeles',e:'13/06 04:00'},
+  '6|7':{n:8,c:'San Francisco',e:'13/06 22:00'},
+  '8|9':{n:7,c:'New York/NJ',e:'14/06 01:00'},
+  '10|11':{n:5,c:'Boston',e:'14/06 04:00'},
+  '14|15':{n:6,c:'Vancouver',e:'14/06 07:00'},
+  '16|17':{n:10,c:'Houston',e:'14/06 20:00'},
+  '20|21':{n:11,c:'Dallas',e:'14/06 23:00'},
+  '18|19':{n:9,c:'Philadelphia',e:'15/06 02:00'},
+  '22|23':{n:12,c:'Monterrey',e:'15/06 05:00'},
+  '28|29':{n:14,c:'Atlanta',e:'15/06 19:00'},
+  '24|25':{n:16,c:'Seattle',e:'15/06 22:00'},
+  '30|31':{n:13,c:'Miami',e:'16/06 01:00'},
+  '26|27':{n:15,c:'Los Angeles',e:'16/06 04:00'},
+  '32|33':{n:17,c:'New York/NJ',e:'16/06 22:00'},
+  '34|35':{n:18,c:'Boston',e:'17/06 01:00'},
+  '36|37':{n:19,c:'Kansas City',e:'17/06 04:00'},
+  '38|39':{n:20,c:'San Francisco',e:'17/06 07:00'},
+  '40|41':{n:23,c:'Houston',e:'17/06 20:00'},
+  '44|45':{n:22,c:'Dallas',e:'17/06 23:00'},
+  '46|47':{n:21,c:'Toronto',e:'18/06 02:00'},
+  '42|43':{n:24,c:'Mexico City',e:'18/06 05:00'},
+  '3|1':{n:25,c:'Atlanta',e:'18/06 19:00'},
+  '7|5':{n:26,c:'Los Angeles',e:'18/06 22:00'},
+  '4|6':{n:27,c:'Vancouver',e:'19/06 01:00'},
+  '0|2':{n:28,c:'Guadalajara',e:'19/06 04:00'},
+  '12|14':{n:32,c:'Seattle',e:'19/06 22:00'},
+  '11|9':{n:30,c:'Boston',e:'20/06 01:00'},
+  '8|10':{n:29,c:'Philadelphia',e:'20/06 03:30'},
+  '15|13':{n:31,c:'San Francisco',e:'20/06 06:00'},
+  '20|22':{n:35,c:'Houston',e:'20/06 20:00'},
+  '16|18':{n:33,c:'Toronto',e:'20/06 23:00'},
+  '19|17':{n:34,c:'Kansas City',e:'21/06 03:00'},
+  '23|21':{n:36,c:'Monterrey',e:'21/06 07:00'},
+  '28|30':{n:38,c:'Atlanta',e:'21/06 19:00'},
+  '24|26':{n:39,c:'Los Angeles',e:'21/06 22:00'},
+  '31|29':{n:37,c:'Miami',e:'22/06 01:00'},
+  '27|25':{n:40,c:'Vancouver',e:'22/06 04:00'},
+  '36|38':{n:43,c:'Dallas',e:'22/06 20:00'},
+  '32|34':{n:42,c:'Philadelphia',e:'23/06 00:00'},
+  '35|33':{n:41,c:'New York/NJ',e:'23/06 03:00'},
+  '39|37':{n:44,c:'San Francisco',e:'23/06 06:00'},
+  '40|42':{n:47,c:'Houston',e:'23/06 20:00'},
+  '44|46':{n:45,c:'Boston',e:'23/06 23:00'},
+  '47|45':{n:46,c:'Toronto',e:'24/06 02:00'},
+  '43|41':{n:48,c:'Guadalajara',e:'24/06 05:00'},
+  '7|4':{n:51,c:'Vancouver',e:'24/06 22:00'},
+  '5|6':{n:52,c:'Seattle',e:'24/06 22:00'},
+  '11|8':{n:49,c:'Miami',e:'25/06 01:00'},
+  '9|10':{n:50,c:'Atlanta',e:'25/06 01:00'},
+  '3|0':{n:53,c:'Mexico City',e:'25/06 04:00'},
+  '1|2':{n:54,c:'Monterrey',e:'25/06 04:00'},
+  '17|18':{n:55,c:'Philadelphia',e:'25/06 23:00'},
+  '19|16':{n:56,c:'New York/NJ',e:'25/06 23:00'},
+  '21|22':{n:57,c:'Dallas',e:'26/06 02:00'},
+  '23|20':{n:58,c:'Kansas City',e:'26/06 02:00'},
+  '15|12':{n:59,c:'Los Angeles',e:'26/06 05:00'},
+  '13|14':{n:60,c:'San Francisco',e:'26/06 05:00'},
+  '35|32':{n:61,c:'Boston',e:'26/06 22:00'},
+  '33|34':{n:62,c:'Toronto',e:'26/06 22:00'},
+  '29|30':{n:65,c:'Houston',e:'27/06 03:00'},
+  '31|28':{n:66,c:'Guadalajara',e:'27/06 03:00'},
+  '25|26':{n:63,c:'Seattle',e:'27/06 06:00'},
+  '27|24':{n:64,c:'Vancouver',e:'27/06 06:00'},
+  '47|44':{n:67,c:'New York/NJ',e:'28/06 00:00'},
+  '45|46':{n:68,c:'Philadelphia',e:'28/06 00:00'},
+  '43|40':{n:71,c:'Miami',e:'28/06 02:30'},
+  '41|42':{n:72,c:'Atlanta',e:'28/06 02:30'},
+  '37|38':{n:69,c:'Kansas City',e:'28/06 05:00'},
+  '39|36':{n:70,c:'Dallas',e:'28/06 05:00'}
+};;
 function mi(ti,aj){return MS[ti+'|'+aj]||MS[aj+'|'+ti]||null;}
 
 // ══ PLAYERS ══
@@ -623,7 +660,7 @@ const PLAYERS=['Aaronson','Adams','Alaba','Al-Dawsari','Alisson','Almada','Álva
 // ══ GROUPS ══
 const GROUPS={
   A:{t:[0,1,2,3],m:[[0,1],[2,3],[3,1],[0,2],[3,0],[1,2]]},
-  B:{t:[4,5,6,7],m:[[0,1],[2,3],[0,2],[3,1],[3,0],[1,2]]},
+  B:{t:[4,5,6,7],m:[[0,1],[2,3],[3,1],[0,2],[3,0],[1,2]]},
   C:{t:[8,9,10,11],m:[[0,1],[2,3],[3,1],[0,2],[3,0],[1,2]]},
   D:{t:[12,13,14,15],m:[[0,1],[2,3],[0,2],[3,1],[3,0],[1,2]]},
   E:{t:[16,17,18,19],m:[[0,1],[2,3],[0,2],[3,1],[1,2],[3,0]]},
@@ -2849,7 +2886,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.61</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.63</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
