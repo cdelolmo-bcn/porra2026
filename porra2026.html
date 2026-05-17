@@ -257,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.64</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.66</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1615,11 +1615,12 @@ function showPage(id){
 }
 
 function buildAdmEditBet(){
+  setTimeout(()=>admSearchBets(),50);
   return `<div style="max-width:600px">
     <div class="card-title" style="margin-bottom:1rem">✏️ Editar Porra de Participante</div>
     <div style="display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap">
-      <input type="text" id="adm-edit-nombre" placeholder="Buscar por nombre..." style="flex:1;min-width:140px" oninput="admSearchBets()">
-      <input type="text" id="adm-edit-email" placeholder="Buscar por email..." style="flex:1;min-width:140px" oninput="admSearchBets()">
+      <input type="text" id="adm-edit-nombre" placeholder="Filtrar por nombre..." style="flex:1;min-width:140px" oninput="admSearchBets()">
+      <input type="text" id="adm-edit-email" placeholder="Filtrar por email..." style="flex:1;min-width:140px" oninput="admSearchBets()">
     </div>
     <div id="adm-edit-results" style="margin-bottom:1rem"></div>
     <div id="adm-edit-form" style="display:none"></div>
@@ -1641,7 +1642,7 @@ async function admSearchBets(){
       const n=(r.nombre||'').toLowerCase();
       const e=(r.email||'').toLowerCase();
       return(!nombre||n.includes(nombre))&&(!email||e.includes(email));
-    });
+    }).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
     if(!filtered.length){res.innerHTML='<div class="hint">No se encontraron porras.</div>';return;}
     let h='<div style="display:flex;flex-direction:column;gap:.4rem">';
     filtered.forEach(r=>{
@@ -1660,6 +1661,9 @@ async function admSearchBets(){
   },400);
 }
 
+function admTeamOpts(selected){
+  return Array.from({length:48},(_,idx)=>`<option value="${idx}" ${selected===idx?'selected':''}>${tn(idx)}</option>`).join('');
+}
 async function admLoadEditForm(id){
   const form=document.getElementById('adm-edit-form');
   form.innerHTML='<div class="spin"></div>';
@@ -1693,7 +1697,7 @@ async function admLoadEditForm(id){
       <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.3rem">Grupo ${g}</div>`;
     gd.m.forEach(([hi,ai],idx)=>{
       const match=gp[idx]||{};
-      const t1=TEAMS[gd.t[hi]];const t2=TEAMS[gd.t[ai]];
+      // t1=gd.t[hi], t2=gd.t[ai] (team indices)
       h+=`<div style="display:flex;align-items:center;gap:.3rem;margin-bottom:.25rem;font-size:.72rem">
         <span title="${tn(gd.t[hi])}">${fi(gd.t[hi])}</span>
         <input type="number" min="0" max="20" id="adm-g-${g}-${idx}-h" value="${match.gh!=null?match.gh:''}" style="width:2.5rem;text-align:center;padding:.15rem;font-size:.72rem">
@@ -1726,7 +1730,7 @@ async function admLoadEditForm(id){
       <span style="color:var(--muted)">${label}: </span>
       <select id="adm-ko-${slot}" style="font-size:.72rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.1rem">
         <option value="">--</option>
-        ${TEAMS.map((tm,idx)=>`<option value="${idx}" ${v===idx?'selected':''}>${fi(idx)} ${tn(idx)}</option>`).join('')}
+        ${admTeamOpts(v)}
       </select>
     </div>`;
   });
@@ -1741,7 +1745,7 @@ async function admLoadEditForm(id){
         <label style="font-size:.72rem;color:var(--muted)">Campeón</label>
         <select id="adm-ext-camp-ef" style="width:100%;font-size:.75rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.2rem">
           <option value="">--</option>
-          ${TEAMS.map((tm,idx)=>`<option value="${idx}" ${ext.camp===idx?'selected':''}>${fi(idx)} ${tn(idx)}</option>`).join('')}
+          ${admTeamOpts(ext.camp)}
         </select>
       </div>
       <div>
@@ -1762,6 +1766,17 @@ async function admLoadEditForm(id){
     </div>
   </div>`;
 
+  // Transfer section
+  h+=`<div style="border-top:1px solid var(--border);padding-top:.8rem;margin-bottom:1rem">
+    <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.5rem">🔄 Transferir a otro usuario</div>
+    <div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">Busca el usuario registrado al que quieres transferir esta porra. La porra pasará a ser suya.</div>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+      <input type="text" id="adm-transfer-search" placeholder="Email del usuario destino..." style="flex:1;min-width:200px;font-size:.8rem" oninput="admSearchUsers()">
+      <div id="adm-transfer-results" style="width:100%"></div>
+    </div>
+    <div id="adm-transfer-selected" style="margin-top:.4rem"></div>
+  </div>`;
+
   h+=`<div style="display:flex;gap:.5rem">
     <button class="btn btn-primary" onclick="admSaveBet()">💾 Guardar cambios</button>
     <button class="btn btn-ghost" onclick="document.getElementById('adm-edit-form').style.display='none'">Cancelar</button>
@@ -1769,6 +1784,50 @@ async function admLoadEditForm(id){
   <div id="adm-edit-msg" style="margin-top:.5rem"></div>
   </div>`;
   form.innerHTML=h;
+}
+
+let _admTransferUserId=null;
+let _admSearchUsersTimer=null;
+async function admSearchUsers(){
+  clearTimeout(_admSearchUsersTimer);
+  _admSearchUsersTimer=setTimeout(async()=>{
+    const q=(document.getElementById('adm-transfer-search')?.value||'').trim();
+    const res=document.getElementById('adm-transfer-results');
+    const sel=document.getElementById('adm-transfer-selected');
+    _admTransferUserId=null;
+    if(sel)sel.innerHTML='';
+    if(!q||q.length<3){if(res)res.innerHTML='';return;}
+    if(res)res.innerHTML='<div class="spin" style="height:20px"></div>';
+    // Query auth users via porras table (email is stored there)
+    const{data,error}=await dbq(c=>c.from('porras').select('user_id,email,nombre').ilike('email','%'+q+'%'),true);
+    if(error||!data){if(res)res.innerHTML='<div class="hint" style="color:#f87171">Error buscando usuarios</div>';return;}
+    // Deduplicate by user_id
+    const seen=new Set();
+    const users=data.filter(r=>{if(!r.user_id||seen.has(r.user_id))return false;seen.add(r.user_id);return true;});
+    if(!users.length){if(res)res.innerHTML='<div class="hint">No se encontró ningún usuario con ese email.</div>';return;}
+    let h='<div style="display:flex;flex-direction:column;gap:.3rem;margin-top:.3rem">';
+    users.forEach(u=>{
+      h+=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surf3);border:1px solid var(--border);border-radius:6px;padding:.35rem .6rem;font-size:.78rem">
+        <span>${esc(u.email)} <span style="color:var(--muted)">(${esc(u.nombre)})</span></span>
+        <button class="btn btn-ghost" style="font-size:.72rem;padding:.2rem .5rem" onclick="admSelectUser('${escJ(u.user_id)}','${escJ(u.email)}')">Seleccionar</button>
+      </div>`;
+    });
+    h+='</div>';
+    if(res)res.innerHTML=h;
+  },400);
+}
+
+function admSelectUser(uid, email){
+  _admTransferUserId=uid;
+  const res=document.getElementById('adm-transfer-results');
+  const sel=document.getElementById('adm-transfer-selected');
+  const inp=document.getElementById('adm-transfer-search');
+  if(res)res.innerHTML='';
+  if(inp)inp.value='';
+  if(sel)sel.innerHTML=`<div style="background:var(--surf3);border:1px solid #4ade80;border-radius:6px;padding:.35rem .6rem;font-size:.78rem;display:flex;align-items:center;justify-content:space-between">
+    <span>✅ Transferir a: <strong style="color:#4ade80">${esc(email)}</strong></span>
+    <button class="btn btn-ghost" style="font-size:.72rem;padding:.2rem .4rem" onclick="_admTransferUserId=null;document.getElementById('adm-transfer-selected').innerHTML=''">✕</button>
+  </div>`;
 }
 
 async function admSaveBet(){
@@ -1806,9 +1865,15 @@ async function admSaveBet(){
   const gol=document.getElementById('adm-ext-gol-ef')?.value.trim();
   const jug=document.getElementById('adm-ext-jug-ef')?.value.trim();
   const newData={grupos,ko,extras:{camp:camp!==''?parseInt(camp):null,esp:esp||null,gol:gol||null,jug:jug||null}};
-  const{error}=await dbq(c=>c.from('porras').update({nombre,email,data:JSON.stringify(newData)}).eq('id',id),true);
+  const updateObj={nombre,email,data:JSON.stringify(newData)};
+  if(_admTransferUserId)updateObj.user_id=_admTransferUserId;
+  const{error}=await dbq(c=>c.from('porras').update(updateObj).eq('id',id),true);
   if(error){msg.innerHTML=`<span style="color:#f87171">Error: ${error.message}</span>`;}
-  else{msg.innerHTML='<span style="color:#4ade80">✅ Guardado correctamente</span>';admSearchBets();}
+  else{
+    msg.innerHTML='<span style="color:#4ade80">✅ Guardado correctamente'+(updateObj.user_id?' — porra transferida':'')+' </span>';
+    _admTransferUserId=null;
+    admSearchBets();
+  }
 }
 
 function tryAdmin(){if(isAdmin||localStorage.getItem('debug_started')==='1')showPage('admin');}
@@ -3085,7 +3150,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.64</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.66</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
