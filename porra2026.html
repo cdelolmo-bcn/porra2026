@@ -257,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.73</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.76</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -2445,50 +2445,88 @@ function getTeamsInRound(ko, round){
 function calcScore(porra,real){
   let pts=0;
   const pk=porra.ko||{};
-  // Normalize real ko: extract .w from {h,a,w} objects if needed
+
+  // Normalize real ko: extract .w (winner) and keep h/a (slot teams)
   const rawRk=real.ko||{};
-  const rk={};
+  const rSlots={}; // rSlots[slot] = {h, a, w} normalized
   Object.entries(rawRk).forEach(([k,v])=>{
     const key=k==='fin_1'?'final_1':k;
-    rk[key]=(v!=null&&typeof v==='object')?v.w:v;
+    if(v!=null&&typeof v==='object') rSlots[key]={h:v.h??null,a:v.a??null,w:v.w??null};
+    else rSlots[key]={h:null,a:null,w:v??null};
   });
 
-  // ── R32 (max 32pts): 1pt por cada país en slot correcto (h y a) ──
-  // Se reconstruye el bracket desde predicciones de grupos vs resultados de grupos
-  try{
-    if(porra.grupos&&real.grupos&&Object.keys(real.grupos).length>0){
-      const pSt=calcStandings(Object.fromEntries(Object.entries(porra.grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
-      const rSt=calcStandings(Object.fromEntries(Object.entries(real.grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
-      const pR32=bR32(pSt,getBT(pSt).map);
-      const rR32=bR32(rSt,getBT(rSt).map);
-      pR32.forEach((tie,i)=>{
-        const rt=rR32[i];
-        if(!rt)return;
-        if(tie.h!=null&&rt.h!=null&&tie.h===rt.h)pts+=1;
-        if(tie.a!=null&&rt.a!=null&&tie.a===rt.a)pts+=1;
-      });
-    }
-  }catch(e){}
+  // Helper: get real slot teams
+  const rH=slot=>rSlots[slot]?.h??null;
+  const rA=slot=>rSlots[slot]?.a??null;
+  const rW=slot=>rSlots[slot]?.w??null;
 
-  // ── Octavos (max 8pts): 1pt por ganador acertado en slot correcto ──
-  for(let i=1;i<=8;i++){const pw=pk['oct_'+i],rw=rk['oct_'+i];if(pw!=null&&rw!=null&&pw===rw)pts+=1;}
+  // Reconstruct porra bracket from ko winners to get h/a per slot
+  // R32: porra stores winner of each r32 slot
+  // Oct: built from r32 winners → oct_i.h = winner of r32_(2i-1), oct_i.a = winner of r32_(2i)
+  // QF: built from oct winners
+  // SF: built from qf winners
+  // Final: built from sf winners
 
-  // ── QF (max 4pts): 1pt por ganador acertado en slot correcto ──
-  for(let i=1;i<=4;i++){const pw=pk['qf_'+i],rw=rk['qf_'+i];if(pw!=null&&rw!=null&&pw===rw)pts+=1;}
+  const pW=slot=>pk[slot]??null; // porra predicted winner for slot
 
-  // ── SF (max 2pts): 1pt por semifinalista acertado, sin importar lado ──
-  {const pFin=new Set([pk['sf_1'],pk['sf_2']].filter(v=>v!=null));
-   const rFin=new Set([rk['sf_1'],rk['sf_2']].filter(v=>v!=null));
+  // Build porra oct slots from r32 winners
+  const pOct=[[1,2],[3,4],[5,6],[7,8],[9,10],[11,12],[13,14],[15,16]].map(([a,b],i)=>({
+    slot:'oct_'+(i+1), h:pW('r32_'+a), a:pW('r32_'+b)
+  }));
+  // Build porra qf slots from oct winners
+  const pQF=[[1,2],[3,4],[5,6],[7,8]].map(([a,b],i)=>({
+    slot:'qf_'+(i+1), h:pW('oct_'+a), a:pW('oct_'+b)
+  }));
+  // Build porra sf slots from qf winners
+  const pSF=[[1,2],[3,4]].map(([a,b],i)=>({
+    slot:'sf_'+(i+1), h:pW('qf_'+a), a:pW('qf_'+b)
+  }));
+
+  // ── R32 (max 32pts): 1pt por cada equipo acertado en slot correcto ──
+  for(let i=1;i<=16;i++){
+    const slot='r32_'+i;
+    const ph=pW('r32_'+(2*i-1)); // NOT applicable — porra r32 slots ARE the teams
+    // The porra r32_i stores the WINNER of that match (1 team)
+    // The real r32_i stores h and a (2 teams) + w (winner)
+    // We compare: does the porra's predicted winner match real h? or real a?
+    const pw=pW(slot);
+    if(pw!=null&&rH(slot)!=null&&pw===rH(slot))pts+=1;
+    if(pw!=null&&rA(slot)!=null&&pw===rA(slot))pts+=1;
+  }
+
+  // ── Octavos (max 16pts): 1pt por cada equipo acertado en slot correcto ──
+  pOct.forEach(({slot,h,a})=>{
+    if(h!=null&&rH(slot)!=null&&h===rH(slot))pts+=1;
+    if(a!=null&&rA(slot)!=null&&a===rA(slot))pts+=1;
+  });
+
+  // ── QF (max 8pts): 1pt por cada equipo acertado en slot correcto ──
+  pQF.forEach(({slot,h,a})=>{
+    if(h!=null&&rH(slot)!=null&&h===rH(slot))pts+=1;
+    if(a!=null&&rA(slot)!=null&&a===rA(slot))pts+=1;
+  });
+
+  // ── SF (max 4pts): 1pt por cada equipo acertado en slot correcto ──
+  pSF.forEach(({slot,h,a})=>{
+    if(h!=null&&rH(slot)!=null&&h===rH(slot))pts+=1;
+    if(a!=null&&rA(slot)!=null&&a===rA(slot))pts+=1;
+  });
+
+  // ── Final (max 2pts): 1pt por finalista acertado sin importar lado ──
+  {const pFin=new Set([pW('sf_1'),pW('sf_2')].filter(v=>v!=null));
+   const rFin=new Set([rW('sf_1'),rW('sf_2')].filter(v=>v!=null));
    pFin.forEach(t=>{if(rFin.has(t))pts+=1;});}
 
   // ── Campeón: 3pts ──
-  if(rk['final_1']!=null&&pk['final_1']!=null&&rk['final_1']===pk['final_1'])pts+=3;
+  {const pw=pW('final_1'),rw=rW('final_1');if(pw!=null&&rw!=null&&pw===rw)pts+=3;}
 
-  // ── Extras: 3pts cada uno ──
-  const pe=porra.extras||{},re=real.extras||{};
-  if(re.esp&&pe.esp===re.esp)pts+=3;
-  if(re.gol&&pe.gol&&pe.gol.toLowerCase()===re.gol.toLowerCase())pts+=3;
-  if(re.jug&&pe.jug&&pe.jug.toLowerCase()===re.jug.toLowerCase())pts+=3;
+  // ── Extras: 3pts cada uno (solo cuando la Final está resuelta) ──
+  if(rW('final_1')!=null){
+    const pe=porra.extras||{},re=real.extras||{};
+    if(re.esp&&pe.esp===re.esp)pts+=3;
+    if(re.gol&&pe.gol&&pe.gol.toLowerCase()===re.gol.toLowerCase())pts+=3;
+    if(re.jug&&pe.jug&&pe.jug.toLowerCase()===re.jug.toLowerCase())pts+=3;
+  }
 
   return pts;
 }
@@ -3160,7 +3198,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.73</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.76</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
