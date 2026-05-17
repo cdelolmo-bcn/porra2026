@@ -257,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.66</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.67</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1615,7 +1615,8 @@ function showPage(id){
 }
 
 function buildAdmEditBet(){
-  setTimeout(()=>admSearchBets(),50);
+  // Load all bets async after rendering
+  requestAnimationFrame(()=>requestAnimationFrame(()=>admSearchBets()));
   return `<div style="max-width:600px">
     <div class="card-title" style="margin-bottom:1rem">✏️ Editar Porra de Participante</div>
     <div style="display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap">
@@ -1633,7 +1634,6 @@ async function admSearchBets(){
   _admEditTimer=setTimeout(async()=>{
     const nombre=(document.getElementById('adm-edit-nombre')?.value||'').trim().toLowerCase();
     const email=(document.getElementById('adm-edit-email')?.value||'').trim().toLowerCase();
-    if(!nombre&&!email){document.getElementById('adm-edit-results').innerHTML='';return;}
     const res=document.getElementById('adm-edit-results');
     res.innerHTML='<div class="spin"></div>';
     const{data,error}=await dbq(c=>c.from('porras').select('id,nombre,email,puntos,paid,data'),true);
@@ -1643,7 +1643,7 @@ async function admSearchBets(){
       const e=(r.email||'').toLowerCase();
       return(!nombre||n.includes(nombre))&&(!email||e.includes(email));
     }).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
-    if(!filtered.length){res.innerHTML='<div class="hint">No se encontraron porras.</div>';return;}
+    if(!filtered.length){res.innerHTML='<div class="hint" style="padding:.5rem;color:var(--muted)">No se encontraron porras.</div>';return;}
     let h='<div style="display:flex;flex-direction:column;gap:.4rem">';
     filtered.forEach(r=>{
       h+=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:.5rem .8rem">
@@ -1867,9 +1867,12 @@ async function admSaveBet(){
   const newData={grupos,ko,extras:{camp:camp!==''?parseInt(camp):null,esp:esp||null,gol:gol||null,jug:jug||null}};
   const updateObj={nombre,email,data:JSON.stringify(newData)};
   if(_admTransferUserId)updateObj.user_id=_admTransferUserId;
-  const{error}=await dbq(c=>c.from('porras').update(updateObj).eq('id',id),true);
-  if(error){msg.innerHTML=`<span style="color:#f87171">Error: ${error.message}</span>`;}
-  else{
+  const{data:updData,error}=await dbq(c=>c.from('porras').update(updateObj).eq('id',id).select('id,user_id'),true);
+  if(error){
+    msg.innerHTML=`<span style="color:#f87171">Error: ${error.message}</span>`;
+  } else if(updateObj.user_id && (!updData||!updData.length||updData[0].user_id!==updateObj.user_id)){
+    msg.innerHTML='<span style="color:#f87171">⚠️ La transferencia fue bloqueada por la política de seguridad (RLS). Añade una policy de admin en Supabase para permitirlo.</span>';
+  } else{
     msg.innerHTML='<span style="color:#4ade80">✅ Guardado correctamente'+(updateObj.user_id?' — porra transferida':'')+' </span>';
     _admTransferUserId=null;
     admSearchBets();
@@ -3150,7 +3153,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.66</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.67</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
