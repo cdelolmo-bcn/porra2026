@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.78</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.79</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1664,7 +1664,10 @@ async function admSearchBets(){
             👤 ${emailMismatch?'<strong>'+esc(ownerEmail)+'</strong>':esc(ownerEmail)}${r.user_id?'':' ⚠️'}
           </div>
         </div>
-        <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem" onclick="admLoadEditForm('${r.id}')">✏️ Editar</button>
+        <div style="display:flex;gap:.3rem">
+          <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem" onclick="admLoadEditForm('${r.id}')">✏️ Editar</button>
+          <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem;color:#f87171;border-color:#f87171" onclick="admDeleteBet('${r.id}','${escJ(r.nombre)}')">🗑️</button>
+        </div>
       </div>`;
     });
     h+='</div>';
@@ -1840,6 +1843,16 @@ function admSelectUser(uid, email){
     <span>✅ Transferir a: <strong style="color:#4ade80">${esc(email)}</strong></span>
     <button class="btn btn-ghost" style="font-size:.72rem;padding:.2rem .4rem" onclick="window._admTransferUserId=null;document.getElementById('adm-transfer-selected').innerHTML=''">✕</button>
   </div>`;
+}
+
+async function admDeleteBet(id, nombre){
+  if(!confirm('¿Eliminar la porra de "'+nombre+'"? Esta acción no se puede deshacer.'))return;
+  const{error}=await dbq(c=>c.from('porras').delete().eq('id',id),true);
+  if(error){alert('Error eliminando: '+error.message);}
+  else{
+    document.getElementById('adm-edit-form').style.display='none';
+    admSearchBets();
+  }
 }
 
 async function admSaveBet(){
@@ -3312,7 +3325,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.78</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.79</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
