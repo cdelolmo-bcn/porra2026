@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.80</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.81</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1978,6 +1978,24 @@ async function admImportXls(){
       return null;
     };
 
+    // Group cols: [col_h, col_a] for each group A-L
+    const GRP_COLS={A:[2,3],B:[5,6],C:[8,9],D:[11,12],E:[14,15],F:[17,18],G:[20,21],H:[23,24],I:[26,27],J:[29,30],K:[32,33],L:[35,36]};
+    // Match rows: [team_row, score_row] for each of 6 matches
+    const MATCH_ROWS=[[13,14],[18,19],[23,24],[28,29],[33,34],[38,39]];
+
+    // Parse grupos
+    const grupos={};
+    'ABCDEFGHIJKL'.split('').forEach(g=>{
+      const [ch,ca]=GRP_COLS[g];
+      grupos[g]=MATCH_ROWS.map(([tr,sr])=>{
+        const th=c(tr,ch),ta=c(tr,ca);
+        const sh=c(sr,ch),sa=c(sr,ca);
+        const gh=(sh!=null&&!isNaN(Number(sh)))?Number(sh):null;
+        const ga=(sa!=null&&!isNaN(Number(sa)))?Number(sa):null;
+        return{h:tid(th),a:tid(ta),gh,ga};
+      });
+    });
+
     const R32_COLS=[[2,3,3],[5,6,6],[8,9,1],[11,12,4],[14,15,12],[17,18,11],[20,21,10],[23,24,9],[26,27,2],[29,30,5],[32,33,7],[35,36,8],[38,39,15],[41,42,14],[44,45,13],[47,48,16]];
     const OCT_COLS=[[2,3,2],[5,6,1],[8,9,5],[11,12,6],[14,15,3],[17,18,4],[20,21,7],[23,24,8]];
     const QF_COLS=[[3,5,1],[9,11,2],[15,17,3],[21,23,4]];
@@ -1998,7 +2016,7 @@ async function admImportXls(){
     const camp=tid(campName);
     const extras={camp,esp,gol:gol?String(gol):null,jug:jug?String(jug):null};
 
-    const data=JSON.stringify({ko,extras,grupos:{}});
+    const data=JSON.stringify({ko,extras,grupos});
 
     // Show preview
     let ph='<div style="background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:.8rem;font-size:.78rem">';
@@ -3335,7 +3353,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.80</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.81</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
