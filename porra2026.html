@@ -5,6 +5,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Porra Mundial 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // Supabase CDN loader with fallbacks
 window._sbLoaded = false;
@@ -257,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.76</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.77</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -359,6 +360,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
       <button class="stab" onclick="admSec('debug',this)">🧪 Debug</button>
       <button class="stab" onclick="admSec('muro',this)">💬 Muro</button>
       <button class="stab" onclick="admSec('editbet',this)">✏️ Editar Porra</button>
+      <button class="stab" onclick="admSec('importxls',this)">📥 Importar Excel</button>
     </div>
     <div id="adm-content"></div>
   </div>
@@ -1889,6 +1891,117 @@ async function admSaveBet(){
   }
 }
 
+// ── TEAM NAME → ID MAP ──────────────────────────────────────────────────
+const XLS_TEAM_MAP={
+  'México':0,'Sudáfrica':1,'Rep. de Corea':2,'Checa':3,
+  'Canadá':4,'Bosnia/Herzeg.':5,'Qatar':6,'Suiza':7,
+  'Brasil':8,'Marruecos':9,'Haiti':10,'Escocia':11,
+  'EE.UU.':12,'Paraguay':13,'Australia':14,'Turquía':15,
+  'Alemania':16,'Curazao':17,'Costa de Marfil':18,'Ecuador':19,
+  'Países Bajos':20,'Japón':21,'Suecia':22,'Túnez':23,
+  'Bélgica':24,'Egipto':25,'IR Irán':26,'Nueva Zelanda':27,
+  'España':28,'Cabo Verde':29,'Arabia Saudita':30,'Uruguay':31,
+  'Francia':32,'Senegal':33,'Iraq':34,'Noruega':35,
+  'Argentina':36,'Argelia':37,'Austria':38,'Jordán':39,
+  'Portugal':40,'RD Congo':41,'Uzbekistán':42,'Colombia':43,
+  'Inglaterra':44,'Croacia':45,'Ghana':46,'Panamá':47,
+};
+const XLS_ESP_MAP={
+  'Campeona':'champion','Subcampeona':'runner_up',
+  'Semifinales':'semis','Cuartos':'quarters',
+  'Octavos':'r16','Ronda de 32':'r32s','Grupos':'groups_out',
+};
+
+function buildAdmImportXls(){
+  return `<div style="max-width:560px">
+    <div class="card-title" style="margin-bottom:1rem">📥 Importar Porra desde Excel</div>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">Sube el Excel del participante (hoja "World Cup"). Se importarán los ganadores de todas las fases KO y los extras.</p>
+    <div style="display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap">
+      <input type="text" id="imp-nombre" placeholder="Nombre del participante..." style="flex:1;min-width:180px">
+      <input type="text" id="imp-email" placeholder="Email (opcional)..." style="flex:1;min-width:180px">
+    </div>
+    <div style="margin-bottom:.8rem">
+      <label style="display:block;font-size:.78rem;color:var(--muted);margin-bottom:.3rem">Fichero Excel (.xlsx o .xlsm):</label>
+      <input type="file" id="imp-file" accept=".xlsx,.xlsm,.xls" style="font-size:.82rem;color:var(--text)">
+    </div>
+    <button class="btn btn-primary" onclick="admImportXls()">📥 Importar y guardar porra</button>
+    <div id="imp-msg" style="margin-top:.8rem"></div>
+    <div id="imp-preview" style="margin-top:.8rem"></div>
+  </div>`;
+}
+
+async function admImportXls(){
+  const msg=document.getElementById('imp-msg');
+  const preview=document.getElementById('imp-preview');
+  const nombre=document.getElementById('imp-nombre')?.value.trim();
+  const email=document.getElementById('imp-email')?.value.trim();
+  const fileEl=document.getElementById('imp-file');
+  if(!nombre){msg.innerHTML='<span style="color:#f87171">Introduce el nombre del participante.</span>';return;}
+  if(!fileEl?.files?.length){msg.innerHTML='<span style="color:#f87171">Selecciona un fichero Excel.</span>';return;}
+  msg.innerHTML='<div class="spin"></div> Leyendo Excel...';
+  preview.innerHTML='';
+  try{
+    const buf=await fileEl.files[0].arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets['World Cup'];
+    if(!ws){msg.innerHTML='<span style="color:#f87171">No se encontró la hoja "World Cup" en el Excel.</span>';return;}
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+    const c=(r,col)=>rows[r]?rows[r][col-1]??null:null; // 1-indexed
+
+    const tid=name=>{if(!name)return null;return XLS_TEAM_MAP[String(name).trim()]??null;};
+    const win=(sh,sa,th,ta)=>{
+      const h=Number(sh),a=Number(sa);
+      if(isNaN(h)||isNaN(a))return null;
+      if(h>a)return tid(th);if(a>h)return tid(ta);return null;
+    };
+
+    const R32_COLS=[[2,3,3],[5,6,6],[8,9,1],[11,12,4],[14,15,12],[17,18,11],[20,21,10],[23,24,9],[26,27,2],[29,30,5],[32,33,7],[35,36,8],[38,39,15],[41,42,14],[44,45,13],[47,48,16]];
+    const OCT_COLS=[[2,3,2],[5,6,1],[8,9,5],[11,12,6],[14,15,3],[17,18,4],[20,21,7],[23,24,8]];
+    const QF_COLS=[[3,5,1],[9,11,2],[15,17,3],[21,23,4]];
+    const SF_COLS=[[6,8,1],[18,20,2]];
+
+    const ko={};
+    R32_COLS.forEach(([ch,ca,slot])=>{ko['r32_'+slot]=win(c(51,ch),c(51,ca),c(50,ch),c(50,ca));});
+    OCT_COLS.forEach(([ch,ca,slot])=>{ko['oct_'+slot]=win(c(61,ch),c(61,ca),c(60,ch),c(60,ca));});
+    QF_COLS.forEach(([ch,ca,slot])=>{ko['qf_'+slot]=win(c(71,ch),c(71,ca),c(70,ch),c(70,ca));});
+    SF_COLS.forEach(([ch,ca,slot])=>{ko['sf_'+slot]=win(c(81,ch),c(81,ca),c(80,ch),c(80,ca));});
+    ko['final_1']=win(c(91,12),c(91,14),c(90,12),c(90,14));
+
+    const campName=c(98,12);
+    const espRaw=c(94,21);
+    const gol=c(98,18);
+    const jug=c(98,21);
+    const esp=XLS_ESP_MAP[String(espRaw||'').trim()]||null;
+    const camp=tid(campName);
+    const extras={camp,esp,gol:gol?String(gol):null,jug:jug?String(jug):null};
+
+    const data=JSON.stringify({ko,extras,grupos:{}});
+
+    // Show preview
+    let ph='<div style="background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:.8rem;font-size:.78rem">';
+    ph+='<div style="font-weight:700;color:var(--gold);margin-bottom:.5rem">Vista previa</div>';
+    ph+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.2rem">';
+    ['r32_1','r32_2','r32_3','r32_4','r32_5','r32_6','r32_7','r32_8',
+     'r32_9','r32_10','r32_11','r32_12','r32_13','r32_14','r32_15','r32_16'].forEach(s=>{
+      ph+=`<div>${s}: ${ko[s]!=null?fi(ko[s],true)+' '+tn(ko[s]):'<span style="color:var(--muted)">—</span>'}</div>`;
+    });
+    ph+='</div>';
+    ph+=`<div style="margin-top:.4rem">🏆 Final: ${ko.final_1!=null?fi(ko.final_1,true)+' '+tn(ko.final_1):'—'}</div>`;
+    ph+=`<div>⭐ Campeón: ${camp!=null?tn(camp):'—'} | España: ${esp||'—'} | Goleador: ${gol||'—'} | Jugador: ${jug||'—'}</div>`;
+    ph+='</div>';
+    preview.innerHTML=ph;
+
+    // Save to Supabase
+    msg.innerHTML='<div class="spin"></div> Guardando...';
+    const{error}=await dbq(c=>c.from('porras').insert({nombre,email:email||null,data,puntos:0,paid:false}),true);
+    if(error){msg.innerHTML=`<span style="color:#f87171">Error guardando: ${error.message}</span>`;}
+    else{msg.innerHTML='<span style="color:#4ade80">✅ Porra importada correctamente para '+esc(nombre)+'</span>';}
+  }catch(e){
+    msg.innerHTML=`<span style="color:#f87171">Error leyendo Excel: ${e.message}</span>`;
+    console.error(e);
+  }
+}
+
 function tryAdmin(){if(isAdmin||localStorage.getItem('debug_started')==='1')showPage('admin');}
 
 
@@ -2545,6 +2658,7 @@ function admSec(sec,btn){
   if(sec==='recalc')ac.innerHTML='<p class="hint" style="margin-bottom:.9rem">Recalcula los puntos de todos los participantes según los resultados guardados.</p><button class="btn btn-primary" onclick="recalcAll()">'+t('recalc_all')+'</button><div id="rc-msg" style="margin-top:.7rem"></div>';
   if(sec==='muro'){ac.innerHTML='<div class="spin"></div>';loadAdmMuro(ac);return;}
   if(sec==='editbet'){ac.innerHTML=buildAdmEditBet();return;}
+  if(sec==='importxls'){ac.innerHTML=buildAdmImportXls();return;}
   if(sec==='debug'){const on=localStorage.getItem('debug_started')==='1';ac.innerHTML='<div class="card" style="max-width:420px"><div class="card-title">🧪 Simulación</div><p class="hint" style="margin-bottom:.9rem">Activa para que la app se comporte como si el Mundial hubiera comenzado (útil para probar el comparador, clasificación, etc.).</p><button class="btn '+(on?'btn-primary':'btn-ghost')+'" onclick="toggleDebug();admSec(\'debug\',document.querySelector(\'.stab.active\'))">🧪 '+(on?'✅ Activado — Desactivar':'Activar simulación')+'</button></div>';}
 }
 // R32 bracket slot definitions for Admin/Simulator
@@ -3198,7 +3312,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.76</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.77</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
