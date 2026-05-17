@@ -257,7 +257,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.63</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.64</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -358,6 +358,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
       <button class="stab" onclick="admSec('setup',this)">Setup BD</button>
       <button class="stab" onclick="admSec('debug',this)">🧪 Debug</button>
       <button class="stab" onclick="admSec('muro',this)">💬 Muro</button>
+      <button class="stab" onclick="admSec('editbet',this)">✏️ Editar Porra</button>
     </div>
     <div id="adm-content"></div>
   </div>
@@ -1613,6 +1614,203 @@ function showPage(id){
   }
 }
 
+function buildAdmEditBet(){
+  return `<div style="max-width:600px">
+    <div class="card-title" style="margin-bottom:1rem">✏️ Editar Porra de Participante</div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap">
+      <input type="text" id="adm-edit-nombre" placeholder="Buscar por nombre..." style="flex:1;min-width:140px" oninput="admSearchBets()">
+      <input type="text" id="adm-edit-email" placeholder="Buscar por email..." style="flex:1;min-width:140px" oninput="admSearchBets()">
+    </div>
+    <div id="adm-edit-results" style="margin-bottom:1rem"></div>
+    <div id="adm-edit-form" style="display:none"></div>
+  </div>`;
+}
+
+let _admEditTimer=null;
+async function admSearchBets(){
+  clearTimeout(_admEditTimer);
+  _admEditTimer=setTimeout(async()=>{
+    const nombre=(document.getElementById('adm-edit-nombre')?.value||'').trim().toLowerCase();
+    const email=(document.getElementById('adm-edit-email')?.value||'').trim().toLowerCase();
+    if(!nombre&&!email){document.getElementById('adm-edit-results').innerHTML='';return;}
+    const res=document.getElementById('adm-edit-results');
+    res.innerHTML='<div class="spin"></div>';
+    const{data,error}=await dbq(c=>c.from('porras').select('id,nombre,email,puntos,paid,data'),true);
+    if(error||!data){res.innerHTML='<div class="alert aerr">Error cargando porras</div>';return;}
+    const filtered=data.filter(r=>{
+      const n=(r.nombre||'').toLowerCase();
+      const e=(r.email||'').toLowerCase();
+      return(!nombre||n.includes(nombre))&&(!email||e.includes(email));
+    });
+    if(!filtered.length){res.innerHTML='<div class="hint">No se encontraron porras.</div>';return;}
+    let h='<div style="display:flex;flex-direction:column;gap:.4rem">';
+    filtered.forEach(r=>{
+      h+=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:.5rem .8rem">
+        <div>
+          <span style="font-weight:700;color:var(--text)">${esc(r.nombre)}</span>
+          <span style="color:var(--muted);font-size:.78rem;margin-left:.5rem">${esc(r.email||'')}</span>
+          <span style="color:var(--gold);font-size:.75rem;margin-left:.5rem">${r.puntos||0}pts</span>
+          <span style="color:${r.paid?'#4ade80':'#f87171'};font-size:.72rem;margin-left:.4rem">${r.paid?'✅':'⏳'}</span>
+        </div>
+        <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem" onclick="admLoadEditForm('${r.id}')">✏️ Editar</button>
+      </div>`;
+    });
+    h+='</div>';
+    res.innerHTML=h;
+  },400);
+}
+
+async function admLoadEditForm(id){
+  const form=document.getElementById('adm-edit-form');
+  form.innerHTML='<div class="spin"></div>';
+  form.style.display='block';
+  const{data,error}=await dbq(c=>c.from('porras').select('*').eq('id',id).single(),true);
+  if(error||!data){form.innerHTML='<div class="alert aerr">Error cargando porra</div>';return;}
+  window._admEditingId=id;
+  window._admEditingData=JSON.parse(data.data||'{}');
+  // Render form
+  let h=`<div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:.5rem">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--gold);margin-bottom:.8rem">Editando: ${esc(data.nombre)}</div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <label style="font-size:.75rem;color:var(--muted);display:block;margin-bottom:.2rem">Nombre</label>
+        <input type="text" id="adm-ef-nombre" value="${esc(data.nombre)}" style="width:100%">
+      </div>
+      <div style="flex:1;min-width:160px">
+        <label style="font-size:.75rem;color:var(--muted);display:block;margin-bottom:.2rem">Email</label>
+        <input type="text" id="adm-ef-email" value="${esc(data.email||'')}" style="width:100%">
+      </div>
+    </div>`;
+
+  // Grupos
+  h+=`<div style="margin-bottom:.8rem">
+    <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.5rem">📊 Fase de Grupos</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.5rem">`;
+  'ABCDEFGHIJKL'.split('').forEach(g=>{
+    const gd=GROUPS[g];
+    const gp=(window._admEditingData.grupos||{})[g]||[];
+    h+=`<div style="background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:.5rem">
+      <div style="font-size:.78rem;font-weight:700;color:var(--gold);margin-bottom:.3rem">Grupo ${g}</div>`;
+    gd.m.forEach(([hi,ai],idx)=>{
+      const match=gp[idx]||{};
+      const t1=TEAMS[gd.t[hi]];const t2=TEAMS[gd.t[ai]];
+      h+=`<div style="display:flex;align-items:center;gap:.3rem;margin-bottom:.25rem;font-size:.72rem">
+        <span title="${tn(gd.t[hi])}">${fi(gd.t[hi])}</span>
+        <input type="number" min="0" max="20" id="adm-g-${g}-${idx}-h" value="${match.gh!=null?match.gh:''}" style="width:2.5rem;text-align:center;padding:.15rem;font-size:.72rem">
+        <span style="color:var(--muted)">-</span>
+        <input type="number" min="0" max="20" id="adm-g-${g}-${idx}-a" value="${match.ga!=null?match.ga:''}" style="width:2.5rem;text-align:center;padding:.15rem;font-size:.72rem">
+        <span title="${tn(gd.t[ai])}">${fi(gd.t[ai])}</span>
+      </div>`;
+    });
+    h+='</div>';
+  });
+  h+='</div></div>';
+
+  // KO
+  h+=`<div style="margin-bottom:.8rem">
+    <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.5rem">🏆 Fase KO</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.4rem">`;
+  const koData=window._admEditingData.ko||{};
+  const koSlots=[
+    ...Array.from({length:16},(_,i)=>`r32_${i+1}`),
+    ...Array.from({length:8},(_,i)=>`oct_${i+1}`),
+    ...Array.from({length:4},(_,i)=>`qf_${i+1}`),
+    ...Array.from({length:2},(_,i)=>`sf_${i+1}`),
+    'final_1'
+  ];
+  koSlots.forEach(slot=>{
+    const v=koData[slot];
+    const label=slot.replace('r32','R32-').replace('oct','Oct-').replace('qf','QF-').replace('sf','SF-').replace('final_1','Final').replace('_',' ');
+    const teamName=v!=null?`${fi(v)} ${tn(v)}`:'--';
+    h+=`<div style="background:var(--surf3);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;font-size:.75rem">
+      <span style="color:var(--muted)">${label}: </span>
+      <select id="adm-ko-${slot}" style="font-size:.72rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.1rem">
+        <option value="">--</option>
+        ${TEAMS.map((tm,idx)=>`<option value="${idx}" ${v===idx?'selected':''}>${fi(idx)} ${tn(idx)}</option>`).join('')}
+      </select>
+    </div>`;
+  });
+  h+='</div></div>';
+
+  // Extras
+  const ext=window._admEditingData.extras||{};
+  h+=`<div style="margin-bottom:1rem">
+    <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.5rem">⭐ Extras</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.4rem">
+      <div>
+        <label style="font-size:.72rem;color:var(--muted)">Campeón</label>
+        <select id="adm-ext-camp-ef" style="width:100%;font-size:.75rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.2rem">
+          <option value="">--</option>
+          ${TEAMS.map((tm,idx)=>`<option value="${idx}" ${ext.camp===idx?'selected':''}>${fi(idx)} ${tn(idx)}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--muted)">Posición España</label>
+        <select id="adm-ext-esp-ef" style="width:100%;font-size:.75rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.2rem">
+          <option value="">--</option>
+          ${['champion','runner_up','semis','quarters','r16','r32s','groups_out'].map(v=>`<option value="${v}" ${ext.esp===v?'selected':''}>${t(v)||v}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--muted)">Máx. Goleador</label>
+        <input type="text" id="adm-ext-gol-ef" value="${esc(ext.gol||'')}" style="width:100%;font-size:.75rem">
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--muted)">Jugador Torneo</label>
+        <input type="text" id="adm-ext-jug-ef" value="${esc(ext.jug||'')}" style="width:100%;font-size:.75rem">
+      </div>
+    </div>
+  </div>`;
+
+  h+=`<div style="display:flex;gap:.5rem">
+    <button class="btn btn-primary" onclick="admSaveBet()">💾 Guardar cambios</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('adm-edit-form').style.display='none'">Cancelar</button>
+  </div>
+  <div id="adm-edit-msg" style="margin-top:.5rem"></div>
+  </div>`;
+  form.innerHTML=h;
+}
+
+async function admSaveBet(){
+  const id=window._admEditingId;
+  if(!id)return;
+  const msg=document.getElementById('adm-edit-msg');
+  msg.innerHTML='Guardando...';
+  // Collect nombre/email
+  const nombre=document.getElementById('adm-ef-nombre')?.value.trim();
+  const email=document.getElementById('adm-ef-email')?.value.trim();
+  if(!nombre){msg.innerHTML='<span style="color:#f87171">El nombre es obligatorio</span>';return;}
+  // Collect grupos
+  const grupos={};
+  'ABCDEFGHIJKL'.split('').forEach(g=>{
+    const gd=GROUPS[g];
+    grupos[g]=gd.m.map(([hi,ai],idx)=>{
+      const ghEl=document.getElementById(`adm-g-${g}-${idx}-h`);
+      const gaEl=document.getElementById(`adm-g-${g}-${idx}-a`);
+      const gh=ghEl?.value!==''?parseInt(ghEl.value):null;
+      const ga=gaEl?.value!==''?parseInt(gaEl.value):null;
+      const ti=gd.t[hi];const aj=gd.t[ai];
+      return{h:ti,a:aj,gh,ga};
+    });
+  });
+  // Collect KO
+  const ko={};
+  const koSlots=[...Array.from({length:16},(_,i)=>`r32_${i+1}`),...Array.from({length:8},(_,i)=>`oct_${i+1}`),...Array.from({length:4},(_,i)=>`qf_${i+1}`),...Array.from({length:2},(_,i)=>`sf_${i+1}`),'final_1'];
+  koSlots.forEach(slot=>{
+    const v=document.getElementById(`adm-ko-${slot}`)?.value;
+    ko[slot]=v!==''?parseInt(v):null;
+  });
+  // Collect extras
+  const camp=document.getElementById('adm-ext-camp-ef')?.value;
+  const esp=document.getElementById('adm-ext-esp-ef')?.value;
+  const gol=document.getElementById('adm-ext-gol-ef')?.value.trim();
+  const jug=document.getElementById('adm-ext-jug-ef')?.value.trim();
+  const newData={grupos,ko,extras:{camp:camp!==''?parseInt(camp):null,esp:esp||null,gol:gol||null,jug:jug||null}};
+  const{error}=await dbq(c=>c.from('porras').update({nombre,email,data:JSON.stringify(newData)}).eq('id',id),true);
+  if(error){msg.innerHTML=`<span style="color:#f87171">Error: ${error.message}</span>`;}
+  else{msg.innerHTML='<span style="color:#4ade80">✅ Guardado correctamente</span>';admSearchBets();}
+}
+
 function tryAdmin(){if(isAdmin||localStorage.getItem('debug_started')==='1')showPage('admin');}
 
 
@@ -2233,6 +2431,7 @@ function admSec(sec,btn){
   if(sec==='bets'){ac.innerHTML='<div class="spin"></div>';loadAdmBets(ac);return;}
   if(sec==='recalc')ac.innerHTML='<p class="hint" style="margin-bottom:.9rem">Recalcula los puntos de todos los participantes según los resultados guardados.</p><button class="btn btn-primary" onclick="recalcAll()">'+t('recalc_all')+'</button><div id="rc-msg" style="margin-top:.7rem"></div>';
   if(sec==='muro'){ac.innerHTML='<div class="spin"></div>';loadAdmMuro(ac);return;}
+  if(sec==='editbet'){ac.innerHTML=buildAdmEditBet();return;}
   if(sec==='debug'){const on=localStorage.getItem('debug_started')==='1';ac.innerHTML='<div class="card" style="max-width:420px"><div class="card-title">🧪 Simulación</div><p class="hint" style="margin-bottom:.9rem">Activa para que la app se comporte como si el Mundial hubiera comenzado (útil para probar el comparador, clasificación, etc.).</p><button class="btn '+(on?'btn-primary':'btn-ghost')+'" onclick="toggleDebug();admSec(\'debug\',document.querySelector(\'.stab.active\'))">🧪 '+(on?'✅ Activado — Desactivar':'Activar simulación')+'</button></div>';}
 }
 // R32 bracket slot definitions for Admin/Simulator
@@ -2886,7 +3085,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.63</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.64</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
