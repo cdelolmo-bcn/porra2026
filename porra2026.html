@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.81</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.82</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1962,14 +1962,15 @@ async function admImportXls(){
     const c=(r,col)=>rows[r-1]?rows[r-1][col-1]??null:null; // Excel 1-indexed → array 0-indexed
 
     const tid=name=>{if(!name)return null;return XLS_TEAM_MAP[String(name).trim()]??null;};
-    const win=(sh,sa,th,ta,penRow,colH)=>{
+    const win=(sh,sa,th,ta,penRow,colH,colA)=>{
       const h=Number(sh),a=Number(sa);
       if(isNaN(h)||isNaN(a))return null;
       if(h>a)return tid(th);
       if(a>h)return tid(ta);
       // Draw — check penalty row
       if(penRow&&colH){
-        const ph=Number(c(penRow,colH)),pa=Number(c(penRow,colH+1));
+        const pCol2=colA||colH+1;
+        const ph=Number(c(penRow,colH)),pa=Number(c(penRow,pCol2));
         if(!isNaN(ph)&&!isNaN(pa)){
           if(ph>pa)return tid(th);
           if(pa>ph)return tid(ta);
@@ -2004,9 +2005,9 @@ async function admImportXls(){
     const ko={};
     R32_COLS.forEach(([ch,ca,slot])=>{ko['r32_'+slot]=win(c(51,ch),c(51,ca),c(50,ch),c(50,ca),53,ch);});
     OCT_COLS.forEach(([ch,ca,slot])=>{ko['oct_'+slot]=win(c(61,ch),c(61,ca),c(60,ch),c(60,ca),63,ch);});
-    QF_COLS.forEach(([ch,ca,slot])=>{ko['qf_'+slot]=win(c(71,ch),c(71,ca),c(70,ch),c(70,ca),73,ch);});
-    SF_COLS.forEach(([ch,ca,slot])=>{ko['sf_'+slot]=win(c(81,ch),c(81,ca),c(80,ch),c(80,ca),83,ch);});
-    ko['final_1']=win(c(91,12),c(91,14),c(90,12),c(90,14),93,12);
+    QF_COLS.forEach(([ch,ca,slot])=>{ko['qf_'+slot]=win(c(71,ch),c(71,ca),c(70,ch),c(70,ca),73,ch,ca);});
+    SF_COLS.forEach(([ch,ca,slot])=>{ko['sf_'+slot]=win(c(81,ch),c(81,ca),c(80,ch),c(80,ca),83,ch,ca);});
+    ko['final_1']=win(c(91,12),c(91,14),c(90,12),c(90,14),93,12,14);
 
     const campName=c(98,12);
     const espRaw=c(94,21);
@@ -3353,7 +3354,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.81</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.82</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
