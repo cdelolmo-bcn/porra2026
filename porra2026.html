@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.87</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.88</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1240,7 +1240,7 @@ function bR32(st,tm){
 function bOct(w){// w = array of 16 r32 winners (index 0=r32_1, 1=r32_2...)
 // Oct feeds: oct_1:(r32_1,r32_4), oct_2:(r32_3,r32_6), oct_3:(r32_2,r32_5), oct_4:(r32_7,r32_8)
 // oct_5:(r32_12,r32_11), oct_6:(r32_10,r32_9), oct_7:(r32_15,r32_14), oct_8:(r32_13,r32_16)
-return[[0,3],[2,5],[1,4],[6,7],[11,10],[9,8],[14,13],[12,15]].map(([a,b],i)=>({id:'oct_'+(i+1),h:w[a],a:w[b]}));}
+return[[2,3],[0,1],[8,9],[10,11],[4,5],[6,7],[12,13],[14,15]].map(([a,b],i)=>({id:'oct_'+(i+1),h:w[a],a:w[b]}));}
 function bQF(w){// w = array of 8 oct winners (index 0=oct_1...)
 // QF: qf_1:(oct_2,oct_1), qf_2:(oct_5,oct_6), qf_3:(oct_3,oct_4), qf_4:(oct_7,oct_8)
 return[[1,0],[4,5],[2,3],[6,7]].map(([a,b],i)=>({id:'qf_'+(i+1),h:w[a],a:w[b]}));}
@@ -1778,7 +1778,7 @@ function admBracketFromKO(){
   while(r32.length<16)r32.push({h:null,a:null});
 
   // Oct from R32 winners
-  const oct=[[1,4],[3,6],[2,5],[7,8],[12,11],[10,9],[15,14],[13,16]].map(([a,b],i)=>({
+  const oct=[[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]].map(([a,b],i)=>({
     id:'oct_'+(i+1),h:pW('r32_'+a),a:pW('r32_'+b)
   }));
   // QF from Oct winners
@@ -2713,7 +2713,7 @@ function calcScore(porra,real){
   const pW=slot=>pk[slot]??null; // porra predicted winner for slot
 
   // Build porra oct slots from r32 winners (correct FIFA bracket feeding)
-  const pOct=[[1,4],[3,6],[2,5],[7,8],[12,11],[10,9],[15,14],[13,16]].map(([a,b],i)=>({
+  const pOct=[[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]].map(([a,b],i)=>({
     slot:'oct_'+(i+1), h:pW('r32_'+a), a:pW('r32_'+b)
   }));
   // Build porra qf slots from oct winners
@@ -3125,7 +3125,7 @@ function renderBracketReadOnly(ko, realKo, grupos){
 
   // Build porra h/a for each phase from winners
   const pW=slot=>ko?.[slot]??null;
-  const pOct=[[1,4],[3,6],[2,5],[7,8],[12,11],[10,9],[15,14],[13,16]].map(([a,b],i)=>({slot:'oct_'+(i+1),h:pW('r32_'+a),a:pW('r32_'+b)}));
+  const pOct=[[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]].map(([a,b],i)=>({slot:'oct_'+(i+1),h:pW('r32_'+a),a:pW('r32_'+b)}));
   const pQF=[[2,1],[5,6],[3,4],[7,8]].map(([a,b],i)=>({slot:'qf_'+(i+1),h:pW('oct_'+a),a:pW('oct_'+b)}));
   const pSF=[[1,2],[3,4]].map(([a,b],i)=>({slot:'sf_'+(i+1),h:pW('qf_'+a),a:pW('qf_'+b)}));
   const pFin={slot:'final_1',h:pW('sf_1'),a:pW('sf_2')};
@@ -3536,7 +3536,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.87</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.88</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
