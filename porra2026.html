@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.83</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.84</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -3016,12 +3016,24 @@ function newBet(){
 }
 
 // ══ VIEW BET DETAIL ══
-function renderBracketReadOnly(ko, realKo){
+function renderBracketReadOnly(ko, realKo, grupos){
   // ko: porra ko data {r32_1: teamId, ...}
   // realKo: real ko data {r32_1: {h,a,w}, ...} or null
+  // grupos: porra grupos data for R32 reconstruction
   const rH=slot=>{if(!realKo)return null;const v=realKo[slot==='final_1'?'fin_1':slot]||realKo[slot];return v&&typeof v==='object'?v.h:null;};
   const rA=slot=>{if(!realKo)return null;const v=realKo[slot==='final_1'?'fin_1':slot]||realKo[slot];return v&&typeof v==='object'?v.a:null;};
   const rW=slot=>{if(!realKo)return null;const v=realKo[slot==='final_1'?'fin_1':slot]||realKo[slot];return v&&typeof v==='object'?v.w:v;};
+
+  // Reconstruct R32 h/a from porra grupos
+  let pR32Map={};
+  try{
+    if(grupos&&Object.keys(grupos).length>0){
+      const st=calcStandings(Object.fromEntries(Object.entries(grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
+      const btRes=getBT(st);
+      const r32=bR32(st,btRes.map);
+      r32.forEach((tie,i)=>{pR32Map['r32_'+(i+1)]={h:tie.h,a:tie.a};});
+    }
+  }catch(e){}
 
   // Build porra h/a for each phase from winners
   const pW=slot=>ko?.[slot]??null;
@@ -3064,20 +3076,22 @@ function renderBracketReadOnly(ko, realKo){
     if(i===9)h+='</div><div><div style="font-size:.65rem;color:var(--muted);text-align:center;margin-bottom:.2rem">'+t('right_half')+'</div>';
     const slot='r32_'+i;
     const pw=pW(slot);
+    // Use porra grupos reconstruction first, then real data as fallback
+    const pSlot=pR32Map[slot]||{};
+    const hTeam=pSlot.h??rH(slot)??null;
+    const aTeam=pSlot.a??rA(slot)??null;
     const rh=rH(slot),ra=rA(slot);
     let card='<div style="background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:.4rem .6rem;margin-bottom:.35rem">';
     card+='<div style="font-size:.6rem;color:var(--muted);margin-bottom:.2rem">R32-'+i+'</div>';
     // Local
     card+='<div style="display:flex;align-items:center;justify-content:space-between;padding:.12rem 0;border-bottom:1px solid var(--border)">';
-    const hTeam=rh??null;
     card+='<div style="font-size:.78rem;'+(pw===hTeam&&hTeam!=null?'font-weight:700;color:var(--gold)':'')+'">'+(hTeam!=null?fi(hTeam,true)+' '+tn(hTeam):'<span style="color:var(--muted)">—</span>')+'</div>';
-    if(hTeam!=null)card+='<span style="font-size:.65rem">'+(pw===hTeam?'✅':'❌')+'</span>';
+    if(hTeam!=null&&rh!=null)card+='<span style="font-size:.65rem">'+(hTeam===rh?'✅':'❌')+'</span>';
     card+='</div>';
     // Visitante
     card+='<div style="display:flex;align-items:center;justify-content:space-between;padding:.12rem 0">';
-    const aTeam=ra??null;
     card+='<div style="font-size:.78rem;'+(pw===aTeam&&aTeam!=null?'font-weight:700;color:var(--gold)':'')+'">'+(aTeam!=null?fi(aTeam,true)+' '+tn(aTeam):'<span style="color:var(--muted)">—</span>')+'</div>';
-    if(aTeam!=null)card+='<span style="font-size:.65rem">'+(pw===aTeam?'✅':'❌')+'</span>';
+    if(aTeam!=null&&ra!=null)card+='<span style="font-size:.65rem">'+(aTeam===ra?'✅':'❌')+'</span>';
     card+='</div></div>';
     h+=card;
   }
@@ -3154,7 +3168,7 @@ async function viewBetDetail(nombre){
   // Load real results for comparison
   let realKoData=null;
   try{const{data:rd}=await dbq(c=>(window._sbAnon||sb).from('resultados').select('data').eq('id',1).single());if(rd)realKoData=JSON.parse(rd.data).ko;}catch(e){}
-  h+=renderBracketReadOnly(p.ko||{},realKoData);
+  h+=renderBracketReadOnly(p.ko||{},realKoData,p.grupos||{});
   // Extras
   const ex=p.extras||{};
   h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.9rem;color:var(--gold);letter-spacing:1px;margin:.65rem 0 .35rem">EXTRAS</div>';
@@ -3434,7 +3448,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.83</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.84</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
