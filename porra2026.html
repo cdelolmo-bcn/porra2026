@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.97</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.98</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -529,9 +529,9 @@ function calcBadges(porra,real,posActual,posAnterior,numMensajes,usedComparador)
   // Adivino
   if(rk.final_1!=null&&pk.final_1===rk.final_1)l.push('adivino');
   // Ojo Clínico
-  if(re.gol&&pe.gol&&(re.gol.toLowerCase().includes(pe.gol.toLowerCase())||pe.gol.toLowerCase().includes(re.gol.toLowerCase())))l.push('ojo');
+  if(re.gol&&pe.gol&&(normStr(re.gol).includes(normStr(pe.gol))||normStr(pe.gol).includes(normStr(re.gol))))l.push('ojo');
   // Talent Scout
-  if(re.jug&&pe.jug&&(re.jug.toLowerCase().includes(pe.jug.toLowerCase())||pe.jug.toLowerCase().includes(re.jug.toLowerCase())))l.push('scout');
+  if(re.jug&&pe.jug&&(normStr(re.jug).includes(normStr(pe.jug))||normStr(pe.jug).includes(normStr(re.jug))))l.push('scout');
   // Ruta de Platino: los 2 finalistas acertados (sin importar lado)
   const pfin=new Set([pk.sf_1,pk.sf_2].filter(v=>v!=null));
   const rfin=new Set([rk.sf_1,rk.sf_2].filter(v=>v!=null));
@@ -658,6 +658,7 @@ const MS={
 function mi(ti,aj){return MS[ti+'|'+aj]||MS[aj+'|'+ti]||null;}
 
 // ══ PLAYERS ══
+window._PLAYERS=[];
 const PLAYERS=['Aaronson','Adams','Alaba','Al-Dawsari','Alisson','Almada','Álvarez','Amrabat','Araújo','Arnautovic','Azmoun','Ayew','Bellingham','Bennacer','Bentancur','B.Silva','Bounou','Buchanan','Camavinga','Cancelo','Carvajal','Casemiro','Cavani','Cucurella','Cuadrado','Davies','De Bruyne','De Ligt','Dembélé','De Paul','Depay','Dest','Di María','Dia','Diatta','Díaz L.','Diogo Jota','Doan','Doku','Dumfries','Dzeko','En-Nesyri','Endrick','Fabián','Falcao','Foden','Forsberg','Gakpo','Gavi','Gnabry','Godoy','Goretzka','Griezmann','Gvardiol','Hakimi','Havertz','Haaland','Hwang Hee-chan','Hwang In-beom','Ibrahimovic','Iheanacho','Isak','Ito','James R.','Jahanbakhsh','Jiménez','Kane','Kimmich','Kim Min-jae','Konaté','Kouassi','Kouyaté','Kudus','Kubo','Kulusevski','Laimer','Larin','Lautaro','Leão','Lee Kang-in','Livakovic','Lloris','Lukaku','Mac Allister','Maignan','Mané','Marquinhos','Mbappé','McKennie','McKennie','Mendy','Militão','Minamino','Mitoma','Modric','Morata','Müller','Muslera','Musiala','Nagatomo','Ndidi','Neuer','Neymar','Ødegaard','Olmo','Osimhen','Paquetá','Partey','Pavard','Pedri','Pepe','Perisic','Pjanic','Pulisic','Quintero','Raphinha','Rashford','Reyna','Rice','Rodri','Rodrygo','Rüdiger','Rúben Neves','Sabitzer','Saka','Salah','Sané','Sarr','Schlager','Shaqiri','Son','Sorloth','Sterling','Suárez','Taremi','Tchouaméni','Tielemans','Torres F.','Turner','Valverde F.','van Dijk','Varane','Vinicius Jr','Weghorst','Wirtz','Xhaka','Yamal','Ziyech'].filter((v,i,a)=>a.indexOf(v)===i).sort();
 
 // ══ GROUPS ══
@@ -1279,6 +1280,7 @@ window.onload=()=>{
 function waitAndLoad(attempts){
   // Keep for compatibility — delegates to initSupabase
   initSupabase();
+  loadJugadors();
 }
 
 async function _anonQ(table, select, filters, order, limit, single=false){
@@ -1297,6 +1299,19 @@ async function _anonQ(table, select, filters, order, limit, single=false){
   }catch(e){return{data:null,error:{message:e.message,code:'NETWORK'}};}
 }
 let _sbInitialized=false;
+function normStr(s){
+  if(!s)return'';
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[-_.]/g,' ').trim();
+}
+
+async function loadJugadors(){
+  try{
+    const{data}=await dbq(c=>(window._sbAnon||sb).from('jugadors').select('nom').order('nom'));
+    if(data&&data.length)window._PLAYERS=data.map(r=>r.nom);
+    else window._PLAYERS=[...PLAYERS];
+  }catch(e){window._PLAYERS=[...PLAYERS];}
+}
+
 function initSupabase(){
   if(window._sbLoadFailed){
     const rc=document.getElementById('rank-container');
@@ -2416,9 +2431,12 @@ function randSF(){
 
 // ══ AUTOCOMPLETE ══
 function acF(fid){
-  const val=document.getElementById(fid)?.value.toLowerCase().trim(),list=document.getElementById('ac-'+fid);
-  if(!list||!val){if(list)list.style.display='none';return;}
-  const m=PLAYERS.filter(p=>p.toLowerCase().includes(val)).slice(0,8);
+  const raw=document.getElementById(fid)?.value||'';
+  const val=normStr(raw);
+  const list=document.getElementById('ac-'+fid);
+  if(!list||!val||val.length<2){if(list)list.style.display='none';return;}
+  const pool=window._PLAYERS.length?window._PLAYERS:PLAYERS;
+  const m=pool.filter(p=>normStr(p).includes(val)).slice(0,10);
   if(!m.length){list.style.display='none';return;}
   list.innerHTML=m.map(p=>'<div class="ac-item" onmousedown="acSel(\''+fid+'\',\''+p.replace(/'/g,"\\'")+'\')"">'+p+'</div>').join('');
   list.style.display='block';
@@ -2795,8 +2813,8 @@ function calcScore(porra,real){
   if(rW('final_1')!=null){
     const pe=porra.extras||{},re=real.extras||{};
     if(re.esp&&pe.esp===re.esp)pts+=3;
-    if(re.gol&&pe.gol&&(re.gol.toLowerCase().includes(pe.gol.toLowerCase())||pe.gol.toLowerCase().includes(re.gol.toLowerCase())))pts+=3;
-    if(re.jug&&pe.jug&&(re.jug.toLowerCase().includes(pe.jug.toLowerCase())||pe.jug.toLowerCase().includes(re.jug.toLowerCase())))pts+=3;
+    if(re.gol&&pe.gol&&(normStr(re.gol).includes(normStr(pe.gol))||normStr(pe.gol).includes(normStr(re.gol))))pts+=3;
+    if(re.jug&&pe.jug&&(normStr(re.jug).includes(normStr(pe.jug))||normStr(pe.jug).includes(normStr(re.jug))))pts+=3;
   }
 
   return pts;
@@ -3575,7 +3593,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.97</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.98</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -3720,7 +3738,7 @@ function renderCompare(pA,pB){
     if(!a&&!b)return;
     let same;
     if(ex.key==='gol'||ex.key==='jug'){
-      same=a&&b&&(a.toLowerCase()===b.toLowerCase()||a.toLowerCase().includes(b.toLowerCase())||b.toLowerCase().includes(a.toLowerCase()));
+      same=a&&b&&(normStr(a)===normStr(b)||normStr(a).includes(normStr(b))||normStr(b).includes(normStr(a)));
     } else {
       same=a===b;
     }
