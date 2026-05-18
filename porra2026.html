@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.85</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.86</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -2026,17 +2026,11 @@ async function admImportXls(){
 
     const data=JSON.stringify({ko,extras,grupos});
 
-    // Show preview
-    let ph='<div style="background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:.8rem;font-size:.78rem">';
-    ph+='<div style="font-weight:700;color:var(--gold);margin-bottom:.5rem">Vista previa</div>';
-    ph+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.2rem">';
-    ['r32_1','r32_2','r32_3','r32_4','r32_5','r32_6','r32_7','r32_8',
-     'r32_9','r32_10','r32_11','r32_12','r32_13','r32_14','r32_15','r32_16'].forEach(s=>{
-      ph+=`<div>${s}: ${ko[s]!=null?fi(ko[s],true)+' '+tn(ko[s]):'<span style="color:var(--muted)">—</span>'}</div>`;
-    });
-    ph+='</div>';
-    ph+=`<div style="margin-top:.4rem">🏆 Final: ${ko.final_1!=null?fi(ko.final_1,true)+' '+tn(ko.final_1):'—'}</div>`;
-    ph+=`<div>⭐ Campeón: ${camp!=null?tn(camp):'—'} | España: ${esp||'—'} | Goleador: ${gol||'—'} | Jugador: ${jug||'—'}</div>`;
+    // Show preview using bracket visual
+    let ph='<div style="background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:.8rem">';
+    ph+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);margin-bottom:.5rem">Vista previa del bracket</div>';
+    ph+=`<div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">⭐ Campeón: ${camp!=null?tn(camp):'—'} | España: ${esp||'—'} | Goleador: ${gol||'—'} | Jugador: ${jug||'—'}</div>`;
+    ph+=renderBracketReadOnly(ko, null, grupos);
     ph+='</div>';
     preview.innerHTML=ph;
 
@@ -3455,7 +3449,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.85</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.86</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
