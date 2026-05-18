@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.89</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.92</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1736,6 +1736,20 @@ async function admLoadEditForm(id){
   const koData=window._admEditingData.ko||{};
   window._admKO={...koData};
   window._admGrupos=window._admEditingData.grupos||{};
+  // Pre-compute R32 h/a from grupos if available, store for bracket display
+  // Use saved r32_slots if available, else reconstruct from grupos
+  window._admR32Slots=window._admEditingData.r32_slots||{};
+  if(!Object.keys(window._admR32Slots).length){
+    try{
+      const g=window._admGrupos;
+      if(g&&Object.keys(g).length>0){
+        const st=calcStandings(Object.fromEntries(Object.entries(g).map(([gr,ms])=>[gr,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
+        const btRes=getBT(st);
+        const r32=bR32(st,btRes.map);
+        r32.forEach((tie,i)=>{window._admR32Slots['r32_'+(i+1)]={h:tie.h,a:tie.a};});
+      }
+    }catch(e){}
+  }
   h+='<div id="adm-bracket-wrap"></div>';
 
   // Transfer section
@@ -1765,17 +1779,23 @@ function admBracketFromKO(){
   const grupos=window._admGrupos||{};
   const pW=s=>ko[s]??null;
 
-  // R32: reconstruct h/a from grupos if available
+  // R32: use pre-computed slots if available, else reconstruct from grupos
   let r32=[];
-  try{
-    if(grupos&&Object.keys(grupos).length>0){
-      const st=calcStandings(Object.fromEntries(Object.entries(grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
-      const btRes=getBT(st);
-      r32=bR32(st,btRes.map);
+  if(window._admR32Slots&&Object.keys(window._admR32Slots).length>0){
+    for(let i=1;i<=16;i++){
+      const s=window._admR32Slots['r32_'+i]||{h:null,a:null};
+      r32.push({id:'r32_'+i,h:s.h,a:s.a});
     }
-  }catch(e){}
-  // fallback: empty h/a if no grupos
-  while(r32.length<16)r32.push({h:null,a:null});
+  } else {
+    try{
+      if(grupos&&Object.keys(grupos).length>0){
+        const st=calcStandings(Object.fromEntries(Object.entries(grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
+        const btRes=getBT(st);
+        r32=bR32(st,btRes.map);
+      }
+    }catch(e){}
+    while(r32.length<16)r32.push({h:null,a:null});
+  }
 
   // Oct from R32 winners
   const oct=[[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]].map(([a,b],i)=>({
@@ -2100,7 +2120,12 @@ async function admImportXls(){
     const SF_COLS=[[6,8,1],[18,20,2]];
 
     const ko={};
-    R32_COLS.forEach(([ch,ca,excelSlot])=>{const codeSlot=EXCEL_R32_TO_CODE[excelSlot-1];ko['r32_'+codeSlot]=win(c(51,ch),c(51,ca),c(50,ch),c(50,ca),53,ch);});
+    const r32Slots={};
+    R32_COLS.forEach(([ch,ca,excelSlot])=>{
+      const codeSlot=EXCEL_R32_TO_CODE[excelSlot-1];
+      ko['r32_'+codeSlot]=win(c(51,ch),c(51,ca),c(50,ch),c(50,ca),53,ch);
+      r32Slots['r32_'+codeSlot]={h:tid(c(50,ch)),a:tid(c(50,ca))};
+    });
     OCT_COLS.forEach(([ch,ca,slot])=>{ko['oct_'+slot]=win(c(61,ch),c(61,ca),c(60,ch),c(60,ca),63,ch);});
     QF_COLS.forEach(([ch,ca,slot])=>{ko['qf_'+slot]=win(c(71,ch),c(71,ca),c(70,ch),c(70,ca),73,ch,ca);});
     SF_COLS.forEach(([ch,ca,slot])=>{ko['sf_'+slot]=win(c(81,ch),c(81,ca),c(80,ch),c(80,ca),83,ch,ca);});
@@ -2114,13 +2139,13 @@ async function admImportXls(){
     const camp=tid(campName);
     const extras={camp,esp,gol:gol?String(gol):null,jug:jug?String(jug):null};
 
-    const data=JSON.stringify({ko,extras,grupos});
+    const data=JSON.stringify({ko,extras,grupos,r32_slots:r32Slots});
 
     // Show preview using bracket visual
     let ph='<div style="background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:.8rem">';
     ph+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1rem;color:var(--gold);margin-bottom:.5rem">Vista previa del bracket</div>';
     ph+=`<div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">⭐ Campeón: ${camp!=null?tn(camp):'—'} | España: ${esp||'—'} | Goleador: ${gol||'—'} | Jugador: ${jug||'—'}</div>`;
-    ph+=renderBracketReadOnly(ko, null, grupos);
+    ph+=renderBracketReadOnly(ko, null, grupos, r32Slots);
     ph+='</div>';
     preview.innerHTML=ph;
 
@@ -3107,7 +3132,7 @@ function newBet(){
 }
 
 // ══ VIEW BET DETAIL ══
-function renderBracketReadOnly(ko, realKo, grupos){
+function renderBracketReadOnly(ko, realKo, grupos, r32Slots){
   // ko: porra ko data {r32_1: teamId, ...}
   // realKo: real ko data {r32_1: {h,a,w}, ...} or null
   // grupos: porra grupos data for R32 reconstruction
@@ -3115,16 +3140,20 @@ function renderBracketReadOnly(ko, realKo, grupos){
   const rA=slot=>{if(!realKo)return null;const v=realKo[slot==='final_1'?'fin_1':slot]||realKo[slot];return v&&typeof v==='object'?v.a:null;};
   const rW=slot=>{if(!realKo)return null;const v=realKo[slot==='final_1'?'fin_1':slot]||realKo[slot];return v&&typeof v==='object'?v.w:v;};
 
-  // Reconstruct R32 h/a from porra grupos
+  // Reconstruct R32 h/a: use explicit r32Slots if provided, else from grupos
   let pR32Map={};
-  try{
-    if(grupos&&Object.keys(grupos).length>0){
-      const st=calcStandings(Object.fromEntries(Object.entries(grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
-      const btRes=getBT(st);
-      const r32=bR32(st,btRes.map);
-      r32.forEach((tie,i)=>{pR32Map['r32_'+(i+1)]={h:tie.h,a:tie.a};});
-    }
-  }catch(e){}
+  if(r32Slots&&Object.keys(r32Slots).length>0){
+    pR32Map=r32Slots;
+  } else {
+    try{
+      if(grupos&&Object.keys(grupos).length>0){
+        const st=calcStandings(Object.fromEntries(Object.entries(grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
+        const btRes=getBT(st);
+        const r32=bR32(st,btRes.map);
+        r32.forEach((tie,i)=>{pR32Map['r32_'+(i+1)]={h:tie.h,a:tie.a};});
+      }
+    }catch(e){}
+  }
 
   // Build porra h/a for each phase from winners
   const pW=slot=>ko?.[slot]??null;
@@ -3539,7 +3568,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.89</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.92</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
