@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.86</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.87</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1732,60 +1732,11 @@ async function admLoadEditForm(id){
   h+='</div></div>';
 
   // KO
-  h+=`<div style="margin-bottom:.8rem">
-    <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.5rem">🏆 Fase KO</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.4rem">`;
+  // KO — bracket interactivo
   const koData=window._admEditingData.ko||{};
-  const koSlots=[
-    ...Array.from({length:16},(_,i)=>`r32_${i+1}`),
-    ...Array.from({length:8},(_,i)=>`oct_${i+1}`),
-    ...Array.from({length:4},(_,i)=>`qf_${i+1}`),
-    ...Array.from({length:2},(_,i)=>`sf_${i+1}`),
-    'final_1'
-  ];
-  koSlots.forEach(slot=>{
-    const v=koData[slot];
-    const label=slot.replace('r32','R32-').replace('oct','Oct-').replace('qf','QF-').replace('sf','SF-').replace('final_1','Final').replace('_',' ');
-    const teamName=v!=null?`${fi(v)} ${tn(v)}`:'--';
-    h+=`<div style="background:var(--surf3);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;font-size:.75rem">
-      <span style="color:var(--muted)">${label}: </span>
-      <select id="adm-ko-${slot}" style="font-size:.72rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.1rem">
-        <option value="">--</option>
-        ${admTeamOpts(v)}
-      </select>
-    </div>`;
-  });
-  h+='</div></div>';
-
-  // Extras
-  const ext=window._admEditingData.extras||{};
-  h+=`<div style="margin-bottom:1rem">
-    <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.5rem">⭐ Extras</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.4rem">
-      <div>
-        <label style="font-size:.72rem;color:var(--muted)">Campeón</label>
-        <select id="adm-ext-camp-ef" style="width:100%;font-size:.75rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.2rem">
-          <option value="">--</option>
-          ${admTeamOpts(ext.camp)}
-        </select>
-      </div>
-      <div>
-        <label style="font-size:.72rem;color:var(--muted)">Posición España</label>
-        <select id="adm-ext-esp-ef" style="width:100%;font-size:.75rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.2rem">
-          <option value="">--</option>
-          ${['champion','runner_up','semis','quarters','r16','r32s','groups_out'].map(v=>`<option value="${v}" ${ext.esp===v?'selected':''}>${t(v)||v}</option>`).join('')}
-        </select>
-      </div>
-      <div>
-        <label style="font-size:.72rem;color:var(--muted)">Máx. Goleador</label>
-        <input type="text" id="adm-ext-gol-ef" value="${esc(ext.gol||'')}" style="width:100%;font-size:.75rem">
-      </div>
-      <div>
-        <label style="font-size:.72rem;color:var(--muted)">Jugador Torneo</label>
-        <input type="text" id="adm-ext-jug-ef" value="${esc(ext.jug||'')}" style="width:100%;font-size:.75rem">
-      </div>
-    </div>
-  </div>`;
+  window._admKO={...koData};
+  window._admGrupos=window._admEditingData.grupos||{};
+  h+='<div id="adm-bracket-wrap"></div>';
 
   // Transfer section
   h+=`<div style="border-top:1px solid var(--border);padding-top:.8rem;margin-bottom:1rem">
@@ -1805,6 +1756,147 @@ async function admLoadEditForm(id){
   <div id="adm-edit-msg" style="margin-top:.5rem"></div>
   </div>`;
   form.innerHTML=h;
+  admRenderBracket();
+}
+
+// ── Admin editable bracket ───────────────────────────────────────────────
+function admBracketFromKO(){
+  const ko=window._admKO||{};
+  const grupos=window._admGrupos||{};
+  const pW=s=>ko[s]??null;
+
+  // R32: reconstruct h/a from grupos if available
+  let r32=[];
+  try{
+    if(grupos&&Object.keys(grupos).length>0){
+      const st=calcStandings(Object.fromEntries(Object.entries(grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
+      const btRes=getBT(st);
+      r32=bR32(st,btRes.map);
+    }
+  }catch(e){}
+  // fallback: empty h/a if no grupos
+  while(r32.length<16)r32.push({h:null,a:null});
+
+  // Oct from R32 winners
+  const oct=[[1,4],[3,6],[2,5],[7,8],[12,11],[10,9],[15,14],[13,16]].map(([a,b],i)=>({
+    id:'oct_'+(i+1),h:pW('r32_'+a),a:pW('r32_'+b)
+  }));
+  // QF from Oct winners
+  const qf=[[2,1],[5,6],[3,4],[7,8]].map(([a,b],i)=>({
+    id:'qf_'+(i+1),h:pW('oct_'+a),a:pW('oct_'+b)
+  }));
+  // SF from QF winners
+  const sf=[[1,2],[3,4]].map(([a,b],i)=>({
+    id:'sf_'+(i+1),h:pW('qf_'+a),a:pW('qf_'+b)
+  }));
+  // Final from SF winners
+  const fin={id:'final_1',h:pW('sf_1'),a:pW('sf_2')};
+
+  return{r32,oct,qf,sf,fin};
+}
+
+function admKOMat(match, prefix, num){
+  const ko=window._admKO||{};
+  const slot=prefix==='final'?'final_1':prefix+'_'+num;
+  const cur=ko[slot]??null;
+  let opts='<option value="">— Ganador —</option>';
+  if(match.h!=null)opts+=`<option value="${match.h}" ${cur===match.h?'selected':''}>${tn(match.h)}</option>`;
+  if(match.a!=null)opts+=`<option value="${match.a}" ${cur===match.a?'selected':''}>${tn(match.a)}</option>`;
+  const hLabel=match.h!=null?fi(match.h,true)+' '+tn(match.h):'<span style="color:var(--muted)">TBD</span>';
+  const aLabel=match.a!=null?fi(match.a,true)+' '+tn(match.a):'<span style="color:var(--muted)">TBD</span>';
+  return `<div class="kom" style="margin-bottom:.4rem">
+    <div class="kolbl">${prefix.toUpperCase().replace('FINAL','FIN')}-${prefix==='final'?'':num}</div>
+    <div class="ko-teams">
+      <div class="ko-team${match.h==null?' tbd':''}">${hLabel}</div>
+      <div class="ko-vs">vs</div>
+      <div class="ko-team${match.a==null?' tbd':''}">${aLabel}</div>
+    </div>
+    <div class="ko-win">→ <select onchange="admKOChange('${slot}',this.value)">${opts}</select></div>
+  </div>`;
+}
+
+function admRenderBracket(){
+  const wrap=document.getElementById('adm-bracket-wrap');
+  if(!wrap)return;
+  const b=admBracketFromKO();
+  const ext=window._admEditingData?.extras||{};
+  const ko=window._admKO||{};
+
+  let h='<div style="margin-bottom:.8rem">';
+  h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.9rem;color:var(--gold);letter-spacing:1px;margin-bottom:.4rem">🏆 Fase KO</div>';
+
+  // R32
+  h+='<div style="font-size:.78rem;font-weight:700;color:var(--text);margin:.4rem 0 .25rem">Ronda de 32</div>';
+  h+='<div class="bracket-wrap"><div class="bracket-half"><div class="bh-title">'+t('left_half')+'</div><div class="ko-grid">';
+  b.r32.slice(0,8).forEach((m,i)=>h+=admKOMat(m,'r32',i+1));
+  h+='</div></div><div class="bracket-half"><div class="bh-title">'+t('right_half')+'</div><div class="ko-grid">';
+  b.r32.slice(8,16).forEach((m,i)=>h+=admKOMat(m,'r32',i+9));
+  h+='</div></div></div>';
+
+  // Oct
+  h+='<div style="font-size:.78rem;font-weight:700;color:var(--text);margin:.6rem 0 .25rem">Octavos de Final</div>';
+  h+='<div class="bracket-wrap"><div class="bracket-half"><div class="ko-grid">';
+  b.oct.slice(0,4).forEach((m,i)=>h+=admKOMat(m,'oct',i+1));
+  h+='</div></div><div class="bracket-half"><div class="ko-grid">';
+  b.oct.slice(4,8).forEach((m,i)=>h+=admKOMat(m,'oct',i+5));
+  h+='</div></div></div>';
+
+  // QF
+  h+='<div style="font-size:.78rem;font-weight:700;color:var(--text);margin:.6rem 0 .25rem">Cuartos de Final</div>';
+  h+='<div class="bracket-wrap"><div class="bracket-half"><div class="ko-grid">';
+  b.qf.slice(0,2).forEach((m,i)=>h+=admKOMat(m,'qf',i+1));
+  h+='</div></div><div class="bracket-half"><div class="ko-grid">';
+  b.qf.slice(2,4).forEach((m,i)=>h+=admKOMat(m,'qf',i+3));
+  h+='</div></div></div>';
+
+  // SF + Final
+  h+='<div style="font-size:.78rem;font-weight:700;color:var(--text);margin:.6rem 0 .25rem">Semifinales</div>';
+  h+='<div class="bracket-wrap"><div class="bracket-half"><div class="ko-grid">';
+  h+=admKOMat(b.sf[0],'sf',1);
+  h+='</div></div><div class="bracket-half"><div class="ko-grid">';
+  h+=admKOMat(b.sf[1],'sf',2);
+  h+='</div></div></div>';
+
+  h+='<div style="font-size:.78rem;font-weight:700;color:var(--gold);margin:.6rem 0 .25rem">🏆 Final</div>';
+  h+='<div class="ko-grid">'+admKOMat(b.fin,'final',1)+'</div>';
+
+  // Extras
+  const finW=ko['final_1'];
+  const posOpts=['champion','runner_up','semis','quarters','r16','r32s','groups_out'];
+  h+=`<div style="margin-top:.8rem;border-top:1px solid var(--border);padding-top:.8rem">
+    <div style="font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:.4rem">⭐ Extras</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.4rem">
+      <div>
+        <label style="font-size:.72rem;color:var(--muted)">Campeón (auto desde Final)</label>
+        <div style="padding:.3rem .5rem;background:var(--surf3);border-radius:6px;font-size:.82rem">
+          ${finW!=null?fi(finW,true)+' '+tn(finW):'<span style="color:var(--muted)">TBD</span>'}
+        </div>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--muted)">Posición España</label>
+        <select id="adm-ext-esp-ef" style="width:100%;font-size:.75rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.2rem">
+          <option value="">--</option>
+          ${posOpts.map(v=>`<option value="${v}" ${ext.esp===v?'selected':''}>${t(v)||v}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--muted)">Máx. Goleador</label>
+        <input type="text" id="adm-ext-gol-ef" value="${esc(ext.gol||'')}" style="width:100%;font-size:.75rem">
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--muted)">Jugador Torneo</label>
+        <input type="text" id="adm-ext-jug-ef" value="${esc(ext.jug||'')}" style="width:100%;font-size:.75rem">
+      </div>
+    </div>
+  </div>`;
+
+  h+='</div>';
+  wrap.innerHTML=h;
+}
+
+function admKOChange(slot, val){
+  window._admKO[slot]=val!==''?parseInt(val):null;
+  admRenderBracket();
 }
 
 window._admTransferUserId=null;
@@ -1884,19 +1976,14 @@ async function admSaveBet(){
       return{h:ti,a:aj,gh,ga};
     });
   });
-  // Collect KO
-  const ko={};
-  const koSlots=[...Array.from({length:16},(_,i)=>`r32_${i+1}`),...Array.from({length:8},(_,i)=>`oct_${i+1}`),...Array.from({length:4},(_,i)=>`qf_${i+1}`),...Array.from({length:2},(_,i)=>`sf_${i+1}`),'final_1'];
-  koSlots.forEach(slot=>{
-    const v=document.getElementById(`adm-ko-${slot}`)?.value;
-    ko[slot]=v!==''?parseInt(v):null;
-  });
+  // Collect KO from _admKO state
+  const ko={...(window._admKO||{})};
   // Collect extras
-  const camp=document.getElementById('adm-ext-camp-ef')?.value;
+  const camp=ko['final_1']!=null?ko['final_1']:null;
   const esp=document.getElementById('adm-ext-esp-ef')?.value;
   const gol=document.getElementById('adm-ext-gol-ef')?.value.trim();
   const jug=document.getElementById('adm-ext-jug-ef')?.value.trim();
-  const newData={grupos,ko,extras:{camp:camp!==''?parseInt(camp):null,esp:esp||null,gol:gol||null,jug:jug||null}};
+  const newData={grupos,ko,extras:{camp:camp!=null?camp:null,esp:esp||null,gol:gol||null,jug:jug||null}};
   const updateObj={nombre,email,data:JSON.stringify(newData)};
   if(window._admTransferUserId)updateObj.user_id=window._admTransferUserId;
   const{data:updData,error}=await dbq(c=>c.from('porras').update(updateObj).eq('id',id).select('id,user_id'),true);
@@ -3449,7 +3536,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.86</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.87</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
