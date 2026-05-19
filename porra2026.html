@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.4</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.5</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1698,6 +1698,7 @@ async function admSearchBets(){
         </div>
         <div style="display:flex;gap:.3rem">
           <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem" onclick="admLoadEditForm('${r.id}')">✏️ Editar</button>
+          <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem" onclick="admExportXls('${r.id}')">📤</button>
           <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem;color:#f87171;border-color:#f87171" onclick="admDeleteBet('${r.id}','${escJ(r.nombre)}')">🗑️</button>
         </div>
       </div>`;
@@ -2185,6 +2186,55 @@ async function admImportXls(){
   }
 }
 
+// ── EXPORT XLS ──────────────────────────────────────────────────────────
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbweqMoijqxKC67A2Gt02JnncauPNVkc0CeNReZe11QyKB-_XuJ7Sp_jLjMBVuMI8-yn/exec';
+
+async function admExportXls(id){
+  let parsed,nomFich='porra';
+  try{
+    const{data,error}=await dbq(c=>c.from('porras').select('nombre,data').eq('id',id).single());
+    if(error||!data){alert('Error cargando porra: '+(error?.message||''));return;}
+    nomFich=String(data.nombre||'porra');
+    parsed=typeof data.data==='string'?JSON.parse(data.data):data.data;
+  }catch(e){alert('Error: '+e.message);return;}
+
+  const ko=parsed.ko||{};
+  const extras=parsed.extras||{};
+  const grupos=parsed.grupos||{};
+
+  // Reconstruir r32_slots si faltan
+  let r32Slots=parsed.r32_slots||{};
+  if(!Object.keys(r32Slots).length&&Object.keys(grupos).length){
+    try{const st=calcStandings(grupos);const bt=getBT(st);const r32b=bR32(st,bt);r32Slots={};r32b.forEach(s=>r32Slots[s.id]={h:s.h,a:s.a});}
+    catch(e){console.warn('r32_slots reconstrucción fallida:',e.message);}
+  }
+
+  const payload={
+    nombre:nomFich,
+    grupos,
+    ko,
+    extras:{esp:extras.esp||'',gol:extras.gol||'',jug:extras.jug||''},
+    r32_slots:r32Slots
+  };
+
+  let json;
+  try{
+    const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
+    json=await resp.json();
+  }catch(e){alert('Error llamando al exportador: '+e.message);return;}
+
+  if(!json.success){alert('Error en exportación: '+(json.error||''));return;}
+
+  const bytes=Uint8Array.from(atob(json.data),c=>c.charCodeAt(0));
+  const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=nomFich.replace(/[^a-zA-Z0-9_\-]/g,'_')+'_porra2026.xlsx';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function tryAdmin(){if(isAdmin||localStorage.getItem('debug_started')==='1')showPage('admin');}
 
 
@@ -2311,6 +2361,8 @@ function autoEspStep(){
   const esp=calcEspFromKo(ko,r32Slots);
   const ee=document.getElementById('ext-esp');
   if(ee&&esp){ee.value=esp;ss('ext-esp',esp);}
+  const disp=document.getElementById('ext-esp-display');
+  if(disp){disp.innerHTML=esp?fi(28,true)+' '+t(esp):'<em>'+t('tbd')+'</em>';}
 }
 function getCampDisplay(){
   const fw=ls('ko_final_1_w');
@@ -2372,7 +2424,7 @@ function stepSFX(){
   h+='<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.9rem;color:var(--gold);letter-spacing:1px;margin:.85rem 0 .45rem">🎯 '+t('extras_lbl')+'</div>';
   h+='<div class="extgrid">';
   h+='<div class="extf"><label>🥇 '+t('winner')+'<span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:.3rem">(auto)</span></label><div id="ext-camp-display" style="background:var(--surf3);border:1px solid var(--border);border-radius:7px;padding:.5rem .72rem;font-size:.88rem;color:var(--muted);min-height:2.2rem;display:flex;align-items:center;gap:.4rem"><em>'+t('tbd')+'</em></div><input type="hidden" id="ext-camp"></div>';
-  h+='<div class="extf"><label>'+fi(28,true)+' '+t('spain_pos')+'</label><select id="ext-esp"><option value="">--</option>'+posOpts+'</select></div>';
+  h+='<div class="extf"><label>'+fi(28,true)+' '+t('spain_pos')+'<span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:.3rem">(auto)</span></label><div id="ext-esp-display" style="background:var(--surf3);border:1px solid var(--border);border-radius:7px;padding:.5rem .72rem;font-size:.88rem;color:var(--muted);min-height:2.2rem;display:flex;align-items:center"><em>'+t('tbd')+'</em></div><input type="hidden" id="ext-esp"></div>';
   h+='<div class="extf"><label>⚽ '+t('top_scorer')+'</label><div class="ac-wrap"><input type="text" id="ext-gol" value="'+ls('ext-gol')+'" placeholder="'+t('player_hint')+'" oninput="acF(\'ext-gol\')" autocomplete="off"><div class="ac-list" id="ac-ext-gol"></div></div></div>';
   h+='<div class="extf"><label>🌟 '+t('best_player')+'</label><div class="ac-wrap"><input type="text" id="ext-jug" value="'+ls('ext-jug')+'" placeholder="'+t('player_hint')+'" oninput="acF(\'ext-jug\')" autocomplete="off"><div class="ac-list" id="ac-ext-jug"></div></div></div>';
   h+='</div>';
@@ -2385,8 +2437,7 @@ function restKO(prefix,count){
 }
 function restExtras(){
   const ev=ls('ext-esp'),ee=document.getElementById('ext-esp');
-  if(ee&&ev!=='')ee.value=ev;
-  // Champion is auto-set from final winner
+  if(ee&&ev!==''){ee.value=ev;const disp=document.getElementById('ext-esp-display');if(disp)disp.innerHTML=fi(28,true)+' '+t(ev);}
   setTimeout(updateCampFromFinal,50);
   setTimeout(autoEspStep,100);
 }
@@ -2519,7 +2570,7 @@ function valExtras(){
   // camp is auto-filled from final winner - valid if final winner is set
   const finalW=ls('ko_final_1_w');
   if(!finalW||finalW===''){mk('ext-camp',true);ok=false;}else mk('ext-camp',false);
-  if(!esp){mk('ext-esp',true);ok=false;}else mk('ext-esp',false);
+  if(!esp){mk('ext-esp-display',true);ok=false;}else mk('ext-esp-display',false);
   if(!gol){mk('ext-gol',true);ok=false;}else mk('ext-gol',false);
   if(!jug){mk('ext-jug',true);ok=false;}else mk('ext-jug',false);
   if(!ok)showMsg('porra-msg',t('val_extras'),'err');return ok;
@@ -3646,7 +3697,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.4</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.5</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
