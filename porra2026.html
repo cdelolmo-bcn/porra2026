@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.3</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.4</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1698,7 +1698,6 @@ async function admSearchBets(){
         </div>
         <div style="display:flex;gap:.3rem">
           <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem" onclick="admLoadEditForm('${r.id}')">✏️ Editar</button>
-          <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem" onclick="admExportXls('${r.id}')">📤</button>
           <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem;color:#f87171;border-color:#f87171" onclick="admDeleteBet('${r.id}','${escJ(r.nombre)}')">🗑️</button>
         </div>
       </div>`;
@@ -1919,11 +1918,8 @@ function admRenderBracket(){
         </div>
       </div>
       <div>
-        <label style="font-size:.72rem;color:var(--muted)">Posición España</label>
-        <select id="adm-ext-esp-ef" style="width:100%;font-size:.75rem;background:var(--surf2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:.2rem">
-          <option value="">--</option>
-          ${posOpts.map(v=>`<option value="${v}" ${ext.esp===v?'selected':''}>${t(v)||v}</option>`).join('')}
-        </select>
+        <label style="font-size:.72rem;color:var(--muted)">Posición España <span style="opacity:.6">(auto)</span></label>
+        <div style="padding:.3rem .5rem;background:var(--surf3);border-radius:6px;font-size:.82rem;color:var(--muted)">Se calcula automáticamente al guardar</div>
       </div>
       <div>
         <label style="font-size:.72rem;color:var(--muted)">Máx. Goleador</label>
@@ -2024,12 +2020,15 @@ async function admSaveBet(){
   });
   // Collect KO from _admKO state
   const ko={...(window._admKO||{})};
-  // Collect extras
+  // Reconstruir r32_slots desde grupos
+  let r32Slots={};
+  try{const st=calcStandings(grupos);const bt=getBT(st);const r32b=bR32(st,bt);r32b.forEach(s=>r32Slots[s.id]={h:s.h,a:s.a});}catch(e){console.warn('r32_slots reconstrucción fallida:',e.message);}
+  // Collect extras — esp se calcula automáticamente
   const camp=ko['final_1']!=null?ko['final_1']:null;
-  const esp=document.getElementById('adm-ext-esp-ef')?.value;
+  const esp=calcEspFromKo(ko,r32Slots);
   const gol=document.getElementById('adm-ext-gol-ef')?.value.trim();
   const jug=document.getElementById('adm-ext-jug-ef')?.value.trim();
-  const newData={grupos,ko,extras:{camp:camp!=null?camp:null,esp:esp||null,gol:gol||null,jug:jug||null}};
+  const newData={grupos,ko,r32_slots:r32Slots,extras:{camp:camp!=null?camp:null,esp:esp||null,gol:gol||null,jug:jug||null}};
   const updateObj={nombre,email,data:JSON.stringify(newData)};
   if(window._admTransferUserId)updateObj.user_id=window._admTransferUserId;
   const{data:updData,error}=await dbq(c=>c.from('porras').update(updateObj).eq('id',id).select('id,user_id'),true);
@@ -2186,68 +2185,6 @@ async function admImportXls(){
   }
 }
 
-// ── EXPORT XLS ──────────────────────────────────────────────────────────
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbweqMoijqxKC67A2Gt02JnncauPNVkc0CeNReZe11QyKB-_XuJ7Sp_jLjMBVuMI8-yn/exec';
-
-async function admExportXls(id){
-  // Cargar datos
-  let parsed,nomFich='porra';
-  try{
-    const{data,error}=await dbq(c=>c.from('porras').select('nombre,data').eq('id',id).single());
-    if(error||!data){alert('Error cargando porra: '+(error?.message||''));return;}
-    nomFich=String(data.nombre||'porra');
-    parsed=typeof data.data==='string'?JSON.parse(data.data):data.data;
-  }catch(e){alert('Error: '+e.message);return;}
-
-  const ko=parsed.ko||{};
-  const extras=parsed.extras||{};
-  const grupos=parsed.grupos||{};
-
-  // Reconstruir r32_slots desde grupos (por si no están guardados)
-  let r32Slots=parsed.r32_slots||{};
-  if(!Object.keys(r32Slots).length&&Object.keys(grupos).length){
-    try{
-      const st=calcStandings(grupos);
-      const bt=getBT(st);
-      const r32Built=bR32(st,bt);
-      r32Slots={};
-      r32Built.forEach(s=>r32Slots[s.id]={h:s.h,a:s.a});
-    }catch(e){console.warn('No se pudieron reconstruir r32_slots:',e.message);}
-  }
-
-  // Construir payload
-  const payload={
-    nombre:nomFich,
-    grupos,
-    ko,
-    extras:{
-      esp:extras.esp||'',
-      gol:extras.gol||'',
-      jug:extras.jug||''
-    },
-    r32_slots:r32Slots
-  };
-
-  // Llamar al Apps Script
-  let json;
-  try{
-    const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
-    json=await resp.json();
-  }catch(e){alert('Error llamando al exportador: '+e.message);return;}
-
-  if(!json.success){alert('Error en exportación: '+(json.error||''));return;}
-
-  // Descargar
-  const bytes=Uint8Array.from(atob(json.data),c=>c.charCodeAt(0));
-  const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=nomFich.replace(/[^a-zA-Z0-9_\-]/g,'_')+'_porra2026.xlsx';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 function tryAdmin(){if(isAdmin||localStorage.getItem('debug_started')==='1')showPage('admin');}
 
 
@@ -2354,7 +2291,27 @@ function renderKOList(matches,prefix,startNum){
   });
   return h+'</div>';
 }
-function onKOC(key,sel){sel.classList.toggle('sel',sel.value!=='');ss('ko_'+key+'_w',sel.value);if(key.startsWith('sf_'))propFinal();if(key==='final_1')updateCampFromFinal();}
+function onKOC(key,sel){sel.classList.toggle('sel',sel.value!=='');ss('ko_'+key+'_w',sel.value);if(key.startsWith('sf_'))propFinal();if(key==='final_1')updateCampFromFinal();autoEspStep();}
+function autoEspStep(){
+  // Reconstruir ko desde localStorage
+  const ko={};
+  ['r32','oct','qf','sf'].forEach(p=>{const n=p==='r32'?16:p==='oct'?8:p==='qf'?4:2;for(let i=1;i<=n;i++){const v=ls('ko_'+p+'_'+i+'_w');if(v!=='')ko[p+'_'+i]=parseInt(v);}});
+  const fw=ls('ko_final_1_w');if(fw!=='')ko['final_1']=parseInt(fw);
+  // Reconstruir r32_slots desde grupos
+  let r32Slots={};
+  try{
+    const grData={};
+    'ABCDEFGHIJKL'.split('').forEach(g=>{
+      const gd=GROUPS[g];
+      grData[g]=gd.m.map(([hi,ai],idx)=>({h:gd.t[hi],a:gd.t[ai],gh:parseInt(ls('g_'+g+'_'+idx+'_h'))||null,ga:parseInt(ls('g_'+g+'_'+idx+'_a'))||null}));
+    });
+    const st=calcStandings(grData);const bt=getBT(st);const r32b=bR32(st,bt);
+    r32b.forEach(s=>r32Slots[s.id]={h:s.h,a:s.a});
+  }catch(e){}
+  const esp=calcEspFromKo(ko,r32Slots);
+  const ee=document.getElementById('ext-esp');
+  if(ee&&esp){ee.value=esp;ss('ext-esp',esp);}
+}
 function getCampDisplay(){
   const fw=ls('ko_final_1_w');
   if(!fw||fw==='')return '<em>'+t('tbd')+'</em>';
@@ -2431,6 +2388,7 @@ function restExtras(){
   if(ee&&ev!=='')ee.value=ev;
   // Champion is auto-set from final winner
   setTimeout(updateCampFromFinal,50);
+  setTimeout(autoEspStep,100);
 }
 function navRow(step){
   const isFirst=step===0,isLast=step===N_STEPS-1;
@@ -3140,6 +3098,28 @@ function _admPropAndUpdate(){
   }
 }
 
+// Calcula posición España (id=28) desde objeto ko y r32Slots
+function calcEspFromKo(ko, r32Slots){
+  const SP=28;
+  if(ko['final_1']===SP)return'champion';
+  const sf1w=ko['sf_1'],sf2w=ko['sf_2'];
+  const finH=sf1w, finA=sf2w;
+  if(finH===SP||finA===SP)return'runner_up';
+  for(let i=1;i<=2;i++){const w=ko['sf_'+i];const prev=ko['qf_'+(i*2-1)],prev2=ko['qf_'+(i*2)];if(prev===SP||prev2===SP)return'semis';}
+  for(let i=1;i<=4;i++){const prev=ko['oct_'+(i*2-1)],prev2=ko['oct_'+(i*2)];if(prev===SP||prev2===SP)return'quarters';}
+  for(let i=1;i<=8;i++){const prev=ko['r32_'+(OCT_FROM_R32_ARR[i-1][0])],prev2=ko['r32_'+(OCT_FROM_R32_ARR[i-1][1])];if(prev===SP||prev2===SP)return'r16';}
+  // Check r32_slots
+  const slots=r32Slots||{};
+  for(let i=1;i<=16;i++){
+    const s=slots['r32_'+i];
+    if(s&&(s.h===SP||s.a===SP)){
+      return ko['r32_'+i]===SP?'r16':'r32s';
+    }
+  }
+  return'groups_out';
+}
+const OCT_FROM_R32_ARR=[[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]];
+
 function admDetectSpainPos(){
   const SPAIN=28;
   const gv=id=>{const el=document.getElementById(id);return el&&el.value!==''?parseInt(el.value):null;};
@@ -3666,7 +3646,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.3</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.4</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
