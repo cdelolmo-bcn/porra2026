@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.0</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.1</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -2187,12 +2187,11 @@ async function admImportXls(){
 }
 
 // ── EXPORT XLS ──────────────────────────────────────────────────────────
-const TEAM_ID_TO_XLS=(()=>{const m={};Object.entries(XLS_TEAM_MAP).forEach(([k,v])=>m[v]=k);return m;})();
 const ESP_CODE_TO_XLS=(()=>{const m={};Object.entries(XLS_ESP_MAP).forEach(([k,v])=>m[v]=k);return m;})();
 
 async function admExportXls(id,nombre){
   const colName=n=>{let s='';while(n>0){s=String.fromCharCode(64+(n%26||26))+s;n=Math.floor((n-1)/26);}return s;};
-  const sc=(ws,r,col,v,t)=>{const addr=colName(col)+r;ws[addr]={v,t:t||((typeof v==='number')?'n':'s')};};
+  const sc=(ws,r,col,v,t)=>{const addr=colName(col)+r;ws[addr]={v,t:t||(typeof v==='number'?'n':'s')};};
 
   // Cargar datos de la porra
   let parsed,nomFich=nombre||'porra';
@@ -2207,7 +2206,6 @@ async function admExportXls(id,nombre){
   const extras=parsed.extras||{};
   const grupos=parsed.grupos||{};
   const r32Slots=parsed.r32_slots||{};
-  const tn_xls=tid=>tid!=null?(TEAM_ID_TO_XLS[tid]??''):'';
 
   // Cargar plantilla desde servidor
   let wb;
@@ -2221,73 +2219,70 @@ async function admExportXls(id,nombre){
   const ws=wb.Sheets['World Cup'];
   if(!ws){alert('No se encontró la hoja "World Cup" en la plantilla.');return;}
 
-  // ── GRUPOS ── filas 13-38 (equipos filas impares, marcadores pares)
+  // ── NOMBRE PORRA ──
+  sc(ws,90,18,nomFich);
+
+  // ── GRUPOS — solo marcadores, filas 14/19/24/29/34/39 ──
   const GRP_COLS={A:[2,3],B:[5,6],C:[8,9],D:[11,12],E:[14,15],F:[17,18],G:[20,21],H:[23,24],I:[26,27],J:[29,30],K:[32,33],L:[35,36]};
-  const MATCH_ROWS=[[13,14],[18,19],[23,24],[28,29],[33,34],[38,39]];
+  const SCORE_ROWS=[14,19,24,29,34,39];
   'ABCDEFGHIJKL'.split('').forEach(gr=>{
     const[ch,ca]=GRP_COLS[gr];
     (grupos[gr]||[]).forEach((m,i)=>{
-      const[tr,sr]=MATCH_ROWS[i]||[];
-      if(!tr)return;
-      sc(ws,tr,ch,tn_xls(m.h));sc(ws,tr,ca,tn_xls(m.a));
+      const sr=SCORE_ROWS[i];
       if(m.gh!=null)sc(ws,sr,ch,m.gh,'n');
       if(m.ga!=null)sc(ws,sr,ca,m.ga,'n');
     });
   });
 
-  // ── R32 ── fila 50 equipos, 51 marcadores
+  // ── KO — 1/0 según ganador ──
+  const koWrite=(ws,row,ch,ca,w,slotH,slotA)=>{
+    if(w==null)return;
+    w===slotH?(sc(ws,row,ch,1,'n'),sc(ws,row,ca,0,'n')):(sc(ws,row,ch,0,'n'),sc(ws,row,ca,1,'n'));
+  };
+
+  // R32 — fila 51
   const EXCEL_R32_TO_CODE=[3,9,1,4,10,2,11,12,8,7,6,5,15,14,13,16];
   const R32_COLS=[[2,3,3],[5,6,6],[8,9,1],[11,12,4],[14,15,12],[17,18,11],[20,21,10],[23,24,9],[26,27,2],[29,30,5],[32,33,7],[35,36,8],[38,39,15],[41,42,14],[44,45,13],[47,48,16]];
   R32_COLS.forEach(([ch,ca,excelSlot])=>{
     const codeSlot=EXCEL_R32_TO_CODE[excelSlot-1];
     const slot=r32Slots['r32_'+codeSlot]||{};
-    sc(ws,50,ch,tn_xls(slot.h));sc(ws,50,ca,tn_xls(slot.a));
-    const w=ko['r32_'+codeSlot];
-    if(w!=null){w===slot.h?(sc(ws,51,ch,1,'n'),sc(ws,51,ca,0,'n')):(sc(ws,51,ch,0,'n'),sc(ws,51,ca,1,'n'));}
+    koWrite(ws,51,ch,ca,ko['r32_'+codeSlot],slot.h,slot.a);
   });
 
-  // ── OCTAVOS ── fila 60/61
+  // Octavos — fila 61
   const OCT_FROM_R32={1:[11,12],2:[3,9],3:[4,10],4:[1,8],5:[7,16],6:[2,6],7:[5,13],8:[14,15]};
   const OCT_COLS=[[2,3,2],[5,6,1],[8,9,5],[11,12,6],[14,15,3],[17,18,4],[20,21,7],[23,24,8]];
   OCT_COLS.forEach(([ch,ca,slot])=>{
     const[rh,ra]=OCT_FROM_R32[slot]||[];
     const th=rh!=null?ko['r32_'+rh]:null, ta=ra!=null?ko['r32_'+ra]:null;
-    sc(ws,60,ch,tn_xls(th));sc(ws,60,ca,tn_xls(ta));
-    const w=ko['oct_'+slot];
-    if(w!=null){w===th?(sc(ws,61,ch,1,'n'),sc(ws,61,ca,0,'n')):(sc(ws,61,ch,0,'n'),sc(ws,61,ca,1,'n'));}
+    koWrite(ws,61,ch,ca,ko['oct_'+slot],th,ta);
   });
 
-  // ── CUARTOS ── fila 70/71
+  // Cuartos — fila 71
   const QF_FROM_OCT={1:[1,2],2:[3,4],3:[5,6],4:[7,8]};
   const QF_COLS=[[3,5,1],[9,11,2],[15,17,3],[21,23,4]];
   QF_COLS.forEach(([ch,ca,slot])=>{
     const[oh,oa]=QF_FROM_OCT[slot]||[];
     const th=oh!=null?ko['oct_'+oh]:null, ta=oa!=null?ko['oct_'+oa]:null;
-    sc(ws,70,ch,tn_xls(th));sc(ws,70,ca,tn_xls(ta));
-    const w=ko['qf_'+slot];
-    if(w!=null){w===th?(sc(ws,71,ch,1,'n'),sc(ws,71,ca,0,'n')):(sc(ws,71,ch,0,'n'),sc(ws,71,ca,1,'n'));}
+    koWrite(ws,71,ch,ca,ko['qf_'+slot],th,ta);
   });
 
-  // ── SEMIS ── fila 80/81
-  const SF_FROM_QF={1:[1,2],2:[3,4]};
+  // Semis — fila 81
   const SF_COLS=[[6,8,1],[18,20,2]];
+  const SF_FROM_QF={1:[1,2],2:[3,4]};
   SF_COLS.forEach(([ch,ca,slot])=>{
     const[qh,qa]=SF_FROM_QF[slot]||[];
     const th=qh!=null?ko['qf_'+qh]:null, ta=qa!=null?ko['qf_'+qa]:null;
-    sc(ws,80,ch,tn_xls(th));sc(ws,80,ca,tn_xls(ta));
-    const w=ko['sf_'+slot];
-    if(w!=null){w===th?(sc(ws,81,ch,1,'n'),sc(ws,81,ca,0,'n')):(sc(ws,81,ch,0,'n'),sc(ws,81,ca,1,'n'));}
+    koWrite(ws,81,ch,ca,ko['sf_'+slot],th,ta);
   });
 
-  // ── FINAL ── fila 90/91
+  // Final — fila 91
   const thFin=ko['sf_1']??null, taFin=ko['sf_2']??null;
-  sc(ws,90,12,tn_xls(thFin));sc(ws,90,14,tn_xls(taFin));
-  const wFin=ko['final_1'];
-  if(wFin!=null){wFin===thFin?(sc(ws,91,12,1,'n'),sc(ws,91,14,0,'n')):(sc(ws,91,12,0,'n'),sc(ws,91,14,1,'n'));}
+  koWrite(ws,91,12,14,ko['final_1'],thFin,taFin);
 
   // ── EXTRAS ──
-  sc(ws,98,12,tn_xls(extras.camp));
   sc(ws,94,21,extras.esp?ESP_CODE_TO_XLS[extras.esp]??'':'');
+  sc(ws,98,12,extras.camp!=null?String(extras.camp):'');
   if(extras.gol)sc(ws,98,18,String(extras.gol));
   if(extras.jug)sc(ws,98,21,String(extras.jug));
 
@@ -3713,7 +3708,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.0</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.1</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
