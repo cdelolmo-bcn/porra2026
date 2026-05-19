@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.2</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.3</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -2188,7 +2188,6 @@ async function admImportXls(){
 
 // ── EXPORT XLS ──────────────────────────────────────────────────────────
 const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbweqMoijqxKC67A2Gt02JnncauPNVkc0CeNReZe11QyKB-_XuJ7Sp_jLjMBVuMI8-yn/exec';
-const ESP_CODE_TO_XLS=(()=>{const m={};Object.entries(XLS_ESP_MAP).forEach(([k,v])=>m[v]=k);return m;})();
 
 async function admExportXls(id){
   // Cargar datos
@@ -2222,7 +2221,7 @@ async function admExportXls(id){
     grupos,
     ko,
     extras:{
-      esp:extras.esp?ESP_CODE_TO_XLS[extras.esp]??'':'',
+      esp:extras.esp||'',
       gol:extras.gol||'',
       jug:extras.jug||''
     },
@@ -3667,7 +3666,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.2</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.3</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
