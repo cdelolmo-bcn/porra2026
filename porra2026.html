@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.98</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.2.99</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -361,6 +361,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
       <button class="stab" onclick="admSec('muro',this)">💬 Muro</button>
       <button class="stab" onclick="admSec('editbet',this)">✏️ Editar Porra</button>
       <button class="stab" onclick="admSec('importxls',this)">📥 Importar Excel</button>
+      <button class="stab" onclick="admSec('exportxls',this)">📤 Exportar Excel</button>
     </div>
     <div id="adm-content"></div>
   </div>
@@ -529,9 +530,9 @@ function calcBadges(porra,real,posActual,posAnterior,numMensajes,usedComparador)
   // Adivino
   if(rk.final_1!=null&&pk.final_1===rk.final_1)l.push('adivino');
   // Ojo Clínico
-  if(re.gol&&pe.gol&&(normStr(re.gol).includes(normStr(pe.gol))||normStr(pe.gol).includes(normStr(re.gol))))l.push('ojo');
+  if(re.gol&&pe.gol&&playerMatch(re.gol,pe.gol))l.push('ojo');
   // Talent Scout
-  if(re.jug&&pe.jug&&(normStr(re.jug).includes(normStr(pe.jug))||normStr(pe.jug).includes(normStr(re.jug))))l.push('scout');
+  if(re.jug&&pe.jug&&playerMatch(re.jug,pe.jug))l.push('scout');
   // Ruta de Platino: los 2 finalistas acertados (sin importar lado)
   const pfin=new Set([pk.sf_1,pk.sf_2].filter(v=>v!=null));
   const rfin=new Set([rk.sf_1,rk.sf_2].filter(v=>v!=null));
@@ -1302,6 +1303,16 @@ let _sbInitialized=false;
 function normStr(s){
   if(!s)return'';
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[-_.]/g,' ').trim();
+}
+
+function playerMatch(a, b){
+  if(!a||!b)return false;
+  const na=normStr(a), nb=normStr(b);
+  if(na===nb||na.includes(nb)||nb.includes(na))return true;
+  // Word-level match: any word in common (min 4 chars to avoid false positives)
+  const wa=na.split(/\s+/).filter(w=>w.length>=4);
+  const wb=nb.split(/\s+/).filter(w=>w.length>=4);
+  return wa.some(w=>wb.includes(w));
 }
 
 async function loadJugadors(){
@@ -2175,6 +2186,198 @@ async function admImportXls(){
   }
 }
 
+// ── EXPORT XLS ──────────────────────────────────────────────────────────
+// Inverse map: team id → XLS_TEAM_MAP key (Spanish name used in Excel)
+const TEAM_ID_TO_XLS=(()=>{const m={};Object.entries(XLS_TEAM_MAP).forEach(([k,v])=>m[v]=k);return m;})();
+// Inverse map: code → XLS label
+const ESP_CODE_TO_XLS=(()=>{const m={};Object.entries(XLS_ESP_MAP).forEach(([k,v])=>m[v]=k);return m;})();
+// Inverse of EXCEL_R32_TO_CODE: codeSlot → excelSlot
+const CODE_R32_TO_EXCEL=(()=>{const EXCEL_R32_TO_CODE=[3,9,1,4,10,2,11,12,8,7,6,5,15,14,13,16];const m={};EXCEL_R32_TO_CODE.forEach((cs,i)=>m[cs]=i+1);return m;})();
+
+function buildAdmExportXls(){
+  return `<div style="max-width:560px">
+    <div class="card-title" style="margin-bottom:1rem">📤 Exportar Porra a Excel</div>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">Busca la porra y descárgala como Excel con el mismo formato que el fichero de importación (hoja "World Cup").</p>
+    <div style="display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap">
+      <input type="text" id="exp-search" placeholder="Nombre del participante..." style="flex:1;min-width:180px">
+      <button class="btn btn-ghost" onclick="admExportSearch()">🔍 Buscar</button>
+    </div>
+    <div id="exp-results" style="margin-bottom:.8rem"></div>
+    <div id="exp-msg" style="margin-top:.8rem"></div>
+  </div>`;
+}
+
+async function admExportSearch(){
+  const q=document.getElementById('exp-search')?.value.trim();
+  const res=document.getElementById('exp-results');
+  const msg=document.getElementById('exp-msg');
+  if(!q){msg.innerHTML='<span style="color:#f87171">Introduce un nombre para buscar.</span>';return;}
+  msg.innerHTML='';
+  res.innerHTML='<div class="spin"></div>';
+  const{data,error}=await dbq(c=>c.from('porras').select('id,nombre,email,puntos,paid,data').ilike('nombre','%'+q+'%').order('nombre'));
+  if(error||!data){res.innerHTML='<span style="color:#f87171">Error buscando: '+(error?.message||'')+'</span>';return;}
+  if(!data.length){res.innerHTML='<span style="color:var(--muted)">No se encontraron porras.</span>';return;}
+  res.innerHTML=data.map(p=>`<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;background:var(--surf2);border:1px solid var(--border);border-radius:6px;margin-bottom:.3rem">
+    <span style="flex:1;font-size:.82rem">${esc(p.nombre)}${p.email?'<span style="color:var(--muted);font-size:.72rem"> — '+esc(p.email)+'</span>':''}</span>
+    <span style="font-size:.72rem;color:var(--muted)">${p.puntos??0} pts</span>
+    <button class="btn btn-primary" style="font-size:.72rem;padding:.2rem .6rem" onclick="admExportXls(${p.id})">📤 Exportar</button>
+  </div>`).join('');
+}
+
+async function admExportXls(id){
+  const msg=document.getElementById('exp-msg');
+  msg.innerHTML='<div class="spin"></div> Cargando porra...';
+  const{data,error}=await dbq(c=>c.from('porras').select('nombre,email,data').eq('id',id).single());
+  if(error||!data){msg.innerHTML='<span style="color:#f87171">Error: '+(error?.message||'no encontrado')+'</span>';return;}
+
+  let parsed;
+  try{parsed=typeof data.data==='string'?JSON.parse(data.data):data.data;}
+  catch(e){msg.innerHTML='<span style="color:#f87171">Error parseando datos.</span>';return;}
+
+  const ko=parsed.ko||{};
+  const extras=parsed.extras||{};
+  const grupos=parsed.grupos||{};
+  const r32Slots=parsed.r32_slots||{};
+
+  // Helper: team id → XLS name
+  const tn_xls=id=>id!=null?TEAM_ID_TO_XLS[id]??'':'';
+
+  // Build a 110-row × 50-col matrix (1-indexed, filled with null)
+  const ROWS=110,COLS=50;
+  const mat=Array.from({length:ROWS},()=>Array(COLS).fill(null));
+  const s=(r,col,v)=>{if(r>=1&&r<=ROWS&&col>=1&&col<=COLS)mat[r-1][col-1]=v;};
+  const g=(r,col)=>(r>=1&&r<=ROWS&&col>=1&&col<=COLS)?mat[r-1][col-1]:null;
+
+  // ── GRUPOS ──
+  // GRP_COLS: group → [col_h, col_a]
+  const GRP_COLS_E={A:[2,3],B:[5,6],C:[8,9],D:[11,12],E:[14,15],F:[17,18],G:[20,21],H:[23,24],I:[26,27],J:[29,30],K:[32,33],L:[35,36]};
+  // MATCH_ROWS: [team_row, score_row]
+  const MATCH_ROWS_E=[[13,14],[18,19],[23,24],[28,29],[33,34],[38,39]];
+  'ABCDEFGHIJKL'.split('').forEach(gr=>{
+    const [ch,ca]=GRP_COLS_E[gr];
+    const matches=grupos[gr]||[];
+    matches.forEach((m,i)=>{
+      const [tr,sr]=MATCH_ROWS_E[i]||[];
+      if(!tr)return;
+      s(tr,ch,tn_xls(m.h));
+      s(tr,ca,tn_xls(m.a));
+      if(m.gh!=null)s(sr,ch,m.gh);
+      if(m.ga!=null)s(sr,ca,m.ga);
+    });
+  });
+
+  // ── R32 ── row 50=teams, 51=scores (no scores stored → leave blank)
+  // R32_COLS: [col_h, col_a, excel_slot_num]
+  const R32_COLS_E=[[2,3,3],[5,6,6],[8,9,1],[11,12,4],[14,15,12],[17,18,11],[20,21,10],[23,24,9],[26,27,2],[29,30,5],[32,33,7],[35,36,8],[38,39,15],[41,42,14],[44,45,13],[47,48,16]];
+  R32_COLS_E.forEach(([ch,ca,excelSlot])=>{
+    const codeSlot=([3,9,1,4,10,2,11,12,8,7,6,5,15,14,13,16])[excelSlot-1];
+    const slot=r32Slots['r32_'+codeSlot]||{};
+    s(50,ch,tn_xls(slot.h));
+    s(50,ca,tn_xls(slot.a));
+    // winner
+    const w=ko['r32_'+codeSlot];
+    if(w!=null){
+      // write a synthetic 1-0 for the winner (home wins if w===h, else 0-1)
+      if(w===slot.h){s(51,ch,1);s(51,ca,0);}
+      else{s(51,ch,0);s(51,ca,1);}
+    }
+  });
+
+  // ── OCTAVOS ── row 60=teams, 61=scores
+  // Oct slot N enfrentan ganadores de pares de R32 slots.
+  // Mapeamos oct_slot → [r32_slot_h, r32_slot_a] según ADM_R32_DEFS del bracket
+  // oct1=r32_11vsR32_12, oct2=r32_3vsR32_9 ... (orden del Excel)
+  // OCT_COLS: [col_h, col_a, oct_slot]  — oct_slot 1..8
+  // Bracket: oct_1 → r32 winners que caen en ese cruce. Reconstruimos desde el bracket renderizado.
+  // Los equipos de oct son simplemente los ganadores de r32; los pares vienen del ADM_R32_DEFS chain.
+  // Simplificación correcta: escribir teamH=ganador_r32_par_izq, teamA=ganador_r32_par_der,
+  // y score sintético según el ganador de oct.
+  // Mapa oct_slot → [r32_code_slot_h, r32_code_slot_a] (del bracket oficial)
+  const OCT_FROM_R32={
+    1:[11,12], 2:[3,9],  3:[4,10], 4:[1,8],
+    5:[7,16],  6:[2,6],  7:[5,13], 8:[14,15]
+  };
+  const OCT_COLS_E=[[2,3,2],[5,6,1],[8,9,5],[11,12,6],[14,15,3],[17,18,4],[20,21,7],[23,24,8]];
+  OCT_COLS_E.forEach(([ch,ca,slot])=>{
+    const pair=OCT_FROM_R32[slot]||[];
+    const th=pair[0]!=null?ko['r32_'+pair[0]]:null;
+    const ta=pair[1]!=null?ko['r32_'+pair[1]]:null;
+    s(60,ch,tn_xls(th));
+    s(60,ca,tn_xls(ta));
+    const w=ko['oct_'+slot];
+    if(w!=null){
+      if(w===th){s(61,ch,1);s(61,ca,0);}
+      else{s(61,ch,0);s(61,ca,1);}
+    }
+  });
+
+  // ── QF ── row 70=teams, 71=scores
+  // qf_slot → [oct_slot_h, oct_slot_a]
+  const QF_FROM_OCT={1:[1,2],2:[3,4],3:[5,6],4:[7,8]};
+  const QF_COLS_E=[[3,5,1],[9,11,2],[15,17,3],[21,23,4]];
+  QF_COLS_E.forEach(([ch,ca,slot])=>{
+    const pair=QF_FROM_OCT[slot]||[];
+    const th=pair[0]!=null?ko['oct_'+pair[0]]:null;
+    const ta=pair[1]!=null?ko['oct_'+pair[1]]:null;
+    s(70,ch,tn_xls(th));
+    s(70,ca,tn_xls(ta));
+    const w=ko['qf_'+slot];
+    if(w!=null){
+      if(w===th){s(71,ch,1);s(71,ca,0);}
+      else{s(71,ch,0);s(71,ca,1);}
+    }
+  });
+
+  // ── SF ── row 80=teams, 81=scores
+  // sf_slot → [qf_slot_h, qf_slot_a]
+  const SF_FROM_QF={1:[1,2],2:[3,4]};
+  const SF_COLS_E=[[6,8,1],[18,20,2]];
+  SF_COLS_E.forEach(([ch,ca,slot])=>{
+    const pair=SF_FROM_QF[slot]||[];
+    const th=pair[0]!=null?ko['qf_'+pair[0]]:null;
+    const ta=pair[1]!=null?ko['qf_'+pair[1]]:null;
+    s(80,ch,tn_xls(th));
+    s(80,ca,tn_xls(ta));
+    const w=ko['sf_'+slot];
+    if(w!=null){
+      if(w===th){s(81,ch,1);s(81,ca,0);}
+      else{s(81,ch,0);s(81,ca,1);}
+    }
+  });
+
+  // ── FINAL ── row 90=teams col 12/14, 91=scores
+  const thFin=ko['sf_1']??null;
+  const taFin=ko['sf_2']??null;
+  s(90,12,tn_xls(thFin));
+  s(90,14,tn_xls(taFin));
+  const wFin=ko['final_1'];
+  if(wFin!=null){
+    if(wFin===thFin){s(91,12,1);s(91,14,0);}
+    else{s(91,12,0);s(91,14,1);}
+  }
+
+  // ── EXTRAS ──
+  // Campeón: row 98 col 12
+  s(98,12,tn_xls(extras.camp));
+  // España: row 94 col 21
+  s(94,21,extras.esp?ESP_CODE_TO_XLS[extras.esp]??'':'');
+  // Goleador: row 98 col 18
+  if(extras.gol)s(98,18,extras.gol);
+  // Jugador: row 98 col 21
+  if(extras.jug)s(98,21,extras.jug);
+
+  // ── Build worksheet with SheetJS ──
+  msg.innerHTML='<div class="spin"></div> Generando Excel...';
+  const wb=XLSX.utils.book_new();
+  const wsData=mat.map(row=>row.map(v=>v??''));
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!ref']='A1:AX'+ROWS;
+  XLSX.utils.book_append_sheet(wb,'World Cup',ws);
+  const fname=(data.nombre||'porra').replace(/[^a-zA-Z0-9_\-]/g,'_')+'_porra2026.xlsx';
+  XLSX.writeFile(wb,fname);
+  msg.innerHTML='<span style="color:#4ade80">✅ Excel descargado: '+esc(fname)+'</span>';
+}
+
 function tryAdmin(){if(isAdmin||localStorage.getItem('debug_started')==='1')showPage('admin');}
 
 
@@ -2813,8 +3016,8 @@ function calcScore(porra,real){
   if(rW('final_1')!=null){
     const pe=porra.extras||{},re=real.extras||{};
     if(re.esp&&pe.esp===re.esp)pts+=3;
-    if(re.gol&&pe.gol&&(normStr(re.gol).includes(normStr(pe.gol))||normStr(pe.gol).includes(normStr(re.gol))))pts+=3;
-    if(re.jug&&pe.jug&&(normStr(re.jug).includes(normStr(pe.jug))||normStr(pe.jug).includes(normStr(re.jug))))pts+=3;
+    if(re.gol&&pe.gol&&playerMatch(re.gol,pe.gol))pts+=3;
+    if(re.jug&&pe.jug&&playerMatch(re.jug,pe.jug))pts+=3;
   }
 
   return pts;
@@ -2835,6 +3038,7 @@ function admSec(sec,btn){
   if(sec==='muro'){ac.innerHTML='<div class="spin"></div>';loadAdmMuro(ac);return;}
   if(sec==='editbet'){ac.innerHTML=buildAdmEditBet();return;}
   if(sec==='importxls'){ac.innerHTML=buildAdmImportXls();return;}
+  if(sec==='exportxls'){ac.innerHTML=buildAdmExportXls();return;}
   if(sec==='debug'){const on=localStorage.getItem('debug_started')==='1';ac.innerHTML='<div class="card" style="max-width:420px"><div class="card-title">🧪 Simulación</div><p class="hint" style="margin-bottom:.9rem">Activa para que la app se comporte como si el Mundial hubiera comenzado (útil para probar el comparador, clasificación, etc.).</p><button class="btn '+(on?'btn-primary':'btn-ghost')+'" onclick="toggleDebug();admSec(\'debug\',document.querySelector(\'.stab.active\'))">🧪 '+(on?'✅ Activado — Desactivar':'Activar simulación')+'</button></div>';}
 }
 // R32 bracket slot definitions for Admin/Simulator
@@ -3593,7 +3797,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.98</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.2.99</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -3738,7 +3942,7 @@ function renderCompare(pA,pB){
     if(!a&&!b)return;
     let same;
     if(ex.key==='gol'||ex.key==='jug'){
-      same=a&&b&&(normStr(a)===normStr(b)||normStr(a).includes(normStr(b))||normStr(b).includes(normStr(a)));
+      same=a&&b&&playerMatch(a,b);
     } else {
       same=a===b;
     }
