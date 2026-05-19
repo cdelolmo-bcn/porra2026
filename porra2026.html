@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.8</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.9</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -2252,22 +2252,39 @@ async function loadStats(){
   const{data,error}=await dbq(c=>c.from('porras').select('data').eq('paid',true));
   if(error||!data||!data.length){el.innerHTML='<div style="color:var(--muted);padding:2rem;text-align:center">No hay datos disponibles.</div>';return;}
 
-  // Contar extras
-  const campCount={},espCount={},golCount={},jugCount={};
+  // Contar extras — jugadores agrupados con playerMatch
+  const campCount={},espCount={};
+  const golGroups=[],jugGroups=[]; // [{name, count}]
+
+  const addPlayer=(groups,name)=>{
+    if(!name)return;
+    const existing=groups.find(g=>playerMatch(g.name,name));
+    if(existing){
+      existing.count++;
+      // Preferir el nombre más largo como canónico
+      if(name.length>existing.name.length)existing.name=name;
+    }else{
+      groups.push({name,count:1});
+    }
+  };
+
   data.forEach(p=>{
     let parsed;try{parsed=typeof p.data==='string'?JSON.parse(p.data):p.data;}catch(e){return;}
     const ex=parsed.extras||{};
     if(ex.camp!=null)campCount[ex.camp]=(campCount[ex.camp]||0)+1;
     if(ex.esp)espCount[ex.esp]=(espCount[ex.esp]||0)+1;
-    if(ex.gol){const k=normStr(ex.gol);golCount[k]=(golCount[k]||0)+1;golCount[k+'__name']=ex.gol;}
-    if(ex.jug){const k=normStr(ex.jug);jugCount[k]=(jugCount[k]||0)+1;jugCount[k+'__name']=ex.jug;}
+    if(ex.gol)addPlayer(golGroups,ex.gol);
+    if(ex.jug)addPlayer(jugGroups,ex.jug);
   });
+
+  golGroups.sort((a,b)=>b.count-a.count);
+  jugGroups.sort((a,b)=>b.count-a.count);
 
   const total=data.length;
   const sortObj=obj=>Object.entries(obj).filter(([k])=>!k.endsWith('__name')).sort((a,b)=>b[1]-a[1]);
   const topCamp=sortObj(campCount).slice(0,6);
-  const topGol=sortObj(golCount).slice(0,5);
-  const topJug=sortObj(jugCount).slice(0,5);
+  const topGol=golGroups.slice(0,5);
+  const topJug=jugGroups.slice(0,5);
   const maxCamp=topCamp[0]?.[1]||1;
 
   const ESP_POS=['champion','runner_up','semis','quarters','r16','r32s','groups_out'];
@@ -2285,15 +2302,13 @@ async function loadStats(){
   const topCampPct=total?Math.round(topCampN/total*100):0;
 
   // Top goleador
-  const topGolKey=topGol[0]?.[0];
-  const topGolN=topGol[0]?.[1]||0;
-  const topGolName=topGolKey?golCount[topGolKey+'__name']||topGolKey:'—';
+  const topGolN=topGol[0]?.count||0;
+  const topGolName=topGol[0]?.name||'—';
   const topGolPct=total?Math.round(topGolN/total*100):0;
 
   // Top MVP
-  const topJugKey=topJug[0]?.[0];
-  const topJugN=topJug[0]?.[1]||0;
-  const topJugName=topJugKey?jugCount[topJugKey+'__name']||topJugKey:'—';
+  const topJugN=topJug[0]?.count||0;
+  const topJugName=topJug[0]?.name||'—';
   const topJugPct=total?Math.round(topJugN/total*100):0;
 
   const barRow=(flag,name,val,max)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:.45rem">
@@ -2323,15 +2338,15 @@ async function loadStats(){
 
   // Campeón card
   const campHtml=card(`${label('🏆 Campeón')}
-    <div style="display:flex;align-items:center;gap:12px;padding:.5rem 0 1rem;border-bottom:0.5px solid var(--border);margin-bottom:.75rem">
-      <div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:2.4rem;flex-shrink:0">${topCampId!=null?fi(topCampId,true):'🏆'}</div>
+    <div style="display:flex;align-items:center;gap:14px;padding:.5rem 0 1rem;border-bottom:0.5px solid var(--border);margin-bottom:.75rem">
+      <div style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:3.2rem;flex-shrink:0;line-height:1">${topCampId!=null?fi(topCampId,true):'🏆'}</div>
       <div><p style="font-size:1rem;font-weight:500;color:var(--text);margin:0">${topCampId!=null?tn(topCampId):'—'}</p><p style="font-size:.75rem;color:var(--muted);margin:.1rem 0 0">${topCampN} porra${topCampN!==1?'s':''} · ${topCampPct}%</p></div>
     </div>
     ${topCamp.slice(1).map(([id,n])=>barRow(fi(parseInt(id),true),tn(parseInt(id)),n,topCamp[1]?.[1]||1)).join('')}`);
 
   // España card
   const espTopLabel=topEsp?ESP_LABEL[topEsp]:'—';
-  const espHtml=card(`${label('🇪🇸 Posición España')}
+  const espHtml=card(`${label('Posición España 🇪🇸')}
     <div style="display:flex;align-items:center;gap:12px;padding:.5rem 0 1rem;border-bottom:0.5px solid var(--border);margin-bottom:.75rem">
       <img src="https://cdelolmo-bcn.github.io/porra2026/images/worldcup.jpg" alt="" style="width:52px;height:52px;object-fit:contain;flex-shrink:0" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
       <span style="display:none;font-size:2rem;flex-shrink:0">🏆</span>
@@ -2346,13 +2361,13 @@ async function loadStats(){
   // Goleador card
   const golHtml=card(`${label('⚽ Máximo Goleador')}
     ${heroBlock('https://cdelolmo-bcn.github.io/porra2026/images/goleador.jpg','⚽',topGolName,`${topGolN} porra${topGolN!==1?'s':''} · ${topGolPct}%`)}
-    ${topGol.slice(1).map(([k,n],i)=>topRow(i+2,golCount[k+'__name']||k,n)).join('')}
+    ${topGol.slice(1).map((g,i)=>topRow(i+2,g.name,g.count)).join('')}
     ${topGol.length===0?'<div style="color:var(--muted);font-size:.82rem">Sin datos</div>':''}`);
 
   // MVP card
   const jugHtml=card(`${label('🌟 MVP')}
     ${heroBlock('https://cdelolmo-bcn.github.io/porra2026/images/mvp.jpg','🌟',topJugName,`${topJugN} porra${topJugN!==1?'s':''} · ${topJugPct}%`)}
-    ${topJug.slice(1).map(([k,n],i)=>topRow(i+2,jugCount[k+'__name']||k,n)).join('')}
+    ${topJug.slice(1).map((g,i)=>topRow(i+2,g.name,g.count)).join('')}
     ${topJug.length===0?'<div style="color:var(--muted);font-size:.82rem">Sin datos</div>':''}`);
 
   el.innerHTML=`<p style="font-size:.82rem;color:var(--muted);margin:0 0 1rem">${total} participante${total!==1?'s':''} confirmado${total!==1?'s':''}</p>
@@ -3814,7 +3829,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.8</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.9</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
