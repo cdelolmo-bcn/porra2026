@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.7</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.3.8</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -281,6 +281,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
       <button class="nav-btn active" id="tab-normas" onclick="showPage('normas')">📜 <span id="lbl-normas">Normas</span></button>
     <button class="nav-btn" id="tab-muro" onclick="showPage('muro')">💬 <span id="lbl-muro">Muro</span></button>
     <button class="nav-btn" id="tab-simulador" onclick="showPage('simulador')">🧪 <span id="lbl-simulador">Simulador</span></button>
+    <button class="nav-btn" id="tab-stats" onclick="showPage('stats')">📊 <span id="lbl-stats">Estadísticas</span></button>
     </div>
   </div>
   <div class="header-deadline" id="deadline-wrap"></div>
@@ -335,6 +336,10 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
     <div class="card-title">📊 Ranking Simulado</div>
     <div id="sim-ranking-output"></div>
   </div>
+</div>
+<div class="page" id="page-stats">
+  <div class="hero"><h1>📊 <span>ESTADÍSTICAS</span></h1><p>Las predicciones de todos los participantes</p></div>
+  <div id="stats-content"><div style="text-align:center;color:var(--muted);padding:2rem">Cargando estadísticas...</div></div>
 </div>
 <div class="page" id="page-muro">
   <div class="hero"><h1>💬 <span id="lbl-muro-title">MURO DE COMENTARIOS</span></h1><p id="lbl-muro-sub">Comenta, pica y celebra en tiempo real</p></div>
@@ -1634,6 +1639,7 @@ function showPage(id){
   }
   if(id==='normas')renderNormas();
   if(id==='muro'){cargarMuro();}
+  if(id==='stats'){loadStats();}
   if(id==='simulador'){
     if(deadlinePassed()){
       loadSimulador();
@@ -2233,6 +2239,126 @@ async function admExportXls(id){
   a.download=nomFich.replace(/[^a-zA-Z0-9_\-]/g,'_')+'_porra2026.xlsx';
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ── ESTADÍSTICAS ────────────────────────────────────────────────────────
+async function loadStats(){
+  if(!deadlinePassed()){
+    document.getElementById('stats-content').innerHTML='<div class="alert ainfo" style="margin:1rem 0">📊 Las estadísticas estarán disponibles una vez cerrado el plazo de la porra (11 jun 2026 · 20:00h España).</div>';
+    return;
+  }
+  const el=document.getElementById('stats-content');
+  el.innerHTML='<div class="spin"></div>';
+  const{data,error}=await dbq(c=>c.from('porras').select('data').eq('paid',true));
+  if(error||!data||!data.length){el.innerHTML='<div style="color:var(--muted);padding:2rem;text-align:center">No hay datos disponibles.</div>';return;}
+
+  // Contar extras
+  const campCount={},espCount={},golCount={},jugCount={};
+  data.forEach(p=>{
+    let parsed;try{parsed=typeof p.data==='string'?JSON.parse(p.data):p.data;}catch(e){return;}
+    const ex=parsed.extras||{};
+    if(ex.camp!=null)campCount[ex.camp]=(campCount[ex.camp]||0)+1;
+    if(ex.esp)espCount[ex.esp]=(espCount[ex.esp]||0)+1;
+    if(ex.gol){const k=normStr(ex.gol);golCount[k]=(golCount[k]||0)+1;golCount[k+'__name']=ex.gol;}
+    if(ex.jug){const k=normStr(ex.jug);jugCount[k]=(jugCount[k]||0)+1;jugCount[k+'__name']=ex.jug;}
+  });
+
+  const total=data.length;
+  const sortObj=obj=>Object.entries(obj).filter(([k])=>!k.endsWith('__name')).sort((a,b)=>b[1]-a[1]);
+  const topCamp=sortObj(campCount).slice(0,6);
+  const topGol=sortObj(golCount).slice(0,5);
+  const topJug=sortObj(jugCount).slice(0,5);
+  const maxCamp=topCamp[0]?.[1]||1;
+
+  const ESP_POS=['champion','runner_up','semis','quarters','r16','r32s','groups_out'];
+  const ESP_COLORS=['#085041','#0F6E56','#1D9E75','#5DCAA5','#9FE1CB','#c8eee2','#E1F5EE'];
+  const ESP_LABEL={champion:'Campeona',runner_up:'Subcampeona',semis:'Semifinales',quarters:'Cuartos',r16:'Octavos',r32s:'Ronda de 32',groups_out:'Grupos'};
+
+  // Posición más elegida España
+  const topEsp=ESP_POS.filter(k=>espCount[k]).sort((a,b)=>(espCount[b]||0)-(espCount[a]||0))[0];
+  const topEspCount=topEsp?espCount[topEsp]||0:0;
+  const topEspPct=total?Math.round(topEspCount/total*100):0;
+
+  // Top campeón
+  const topCampId=topCamp[0]?.[0];
+  const topCampN=topCamp[0]?.[1]||0;
+  const topCampPct=total?Math.round(topCampN/total*100):0;
+
+  // Top goleador
+  const topGolKey=topGol[0]?.[0];
+  const topGolN=topGol[0]?.[1]||0;
+  const topGolName=topGolKey?golCount[topGolKey+'__name']||topGolKey:'—';
+  const topGolPct=total?Math.round(topGolN/total*100):0;
+
+  // Top MVP
+  const topJugKey=topJug[0]?.[0];
+  const topJugN=topJug[0]?.[1]||0;
+  const topJugName=topJugKey?jugCount[topJugKey+'__name']||topJugKey:'—';
+  const topJugPct=total?Math.round(topJugN/total*100):0;
+
+  const barRow=(flag,name,val,max)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:.45rem">
+    <span style="font-size:.8rem;color:var(--text);width:110px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${flag} ${esc(name)}</span>
+    <div style="flex:1;height:7px;background:var(--surf2);border-radius:4px;overflow:hidden"><div style="width:${Math.round(val/max*100)}%;height:100%;border-radius:4px;background:#534AB7"></div></div>
+    <span style="font-size:.72rem;color:var(--muted);width:28px;text-align:right">${val}</span>
+  </div>`;
+
+  const topRow=(rank,name,val)=>`<div style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:0.5px solid var(--border)">
+    <span style="font-size:.72rem;color:var(--muted);width:16px;text-align:center">${rank}</span>
+    <span style="font-size:.82rem;color:var(--text);flex:1">${esc(name)}</span>
+    <span style="font-size:.72rem;color:var(--muted)">${val} porra${val!==1?'s':''}</span>
+  </div>`;
+
+  const heroBlock=(imgUrl,fallbackEmoji,name,sub)=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:.5rem 0 1rem;border-bottom:0.5px solid var(--border);margin-bottom:.75rem">
+      <img src="${imgUrl}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--surf2);border:2px solid var(--border);display:none;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0">${fallbackEmoji}</div>
+      <div>
+        <p style="font-size:1rem;font-weight:500;color:var(--text);margin:0">${esc(name)}</p>
+        <p style="font-size:.75rem;color:var(--muted);margin:.1rem 0 0">${sub}</p>
+      </div>
+    </div>`;
+
+  const card=content=>`<div class="card">${content}</div>`;
+  const label=txt=>`<p style="font-size:.7rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:0 0 .9rem">${txt}</p>`;
+
+  // Campeón card
+  const campHtml=card(`${label('🏆 Campeón')}
+    <div style="display:flex;align-items:center;gap:12px;padding:.5rem 0 1rem;border-bottom:0.5px solid var(--border);margin-bottom:.75rem">
+      <div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:2.4rem;flex-shrink:0">${topCampId!=null?fi(topCampId,true):'🏆'}</div>
+      <div><p style="font-size:1rem;font-weight:500;color:var(--text);margin:0">${topCampId!=null?tn(topCampId):'—'}</p><p style="font-size:.75rem;color:var(--muted);margin:.1rem 0 0">${topCampN} porra${topCampN!==1?'s':''} · ${topCampPct}%</p></div>
+    </div>
+    ${topCamp.slice(1).map(([id,n])=>barRow(fi(parseInt(id),true),tn(parseInt(id)),n,topCamp[1]?.[1]||1)).join('')}`);
+
+  // España card
+  const espTopLabel=topEsp?ESP_LABEL[topEsp]:'—';
+  const espHtml=card(`${label('🇪🇸 Posición España')}
+    <div style="display:flex;align-items:center;gap:12px;padding:.5rem 0 1rem;border-bottom:0.5px solid var(--border);margin-bottom:.75rem">
+      <img src="https://cdelolmo-bcn.github.io/porra2026/images/worldcup.jpg" alt="" style="width:52px;height:52px;object-fit:contain;flex-shrink:0" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <span style="display:none;font-size:2rem;flex-shrink:0">🏆</span>
+      <div><p style="font-size:1rem;font-weight:500;color:var(--text);margin:0">${espTopLabel}</p><p style="font-size:.75rem;color:var(--muted);margin:.1rem 0 0">${topEspCount} porra${topEspCount!==1?'s':''} · ${topEspPct}%</p></div>
+    </div>
+    ${ESP_POS.filter(k=>k!==topEsp).map((k,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:.4rem">
+      <div style="width:9px;height:9px;border-radius:50%;flex-shrink:0;background:${ESP_COLORS[ESP_POS.indexOf(k)]}${ESP_POS.indexOf(k)===6?';border:0.5px solid var(--border)':''}"></div>
+      <span style="font-size:.8rem;color:var(--text);flex:1">${ESP_LABEL[k]}</span>
+      <span style="font-size:.8rem;font-weight:500;color:var(--text)">${espCount[k]||0}</span>
+    </div>`).join('')}`);
+
+  // Goleador card
+  const golHtml=card(`${label('⚽ Máximo Goleador')}
+    ${heroBlock('https://cdelolmo-bcn.github.io/porra2026/images/goleador.jpg','⚽',topGolName,`${topGolN} porra${topGolN!==1?'s':''} · ${topGolPct}%`)}
+    ${topGol.slice(1).map(([k,n],i)=>topRow(i+2,golCount[k+'__name']||k,n)).join('')}
+    ${topGol.length===0?'<div style="color:var(--muted);font-size:.82rem">Sin datos</div>':''}`);
+
+  // MVP card
+  const jugHtml=card(`${label('🌟 MVP')}
+    ${heroBlock('https://cdelolmo-bcn.github.io/porra2026/images/mvp.jpg','🌟',topJugName,`${topJugN} porra${topJugN!==1?'s':''} · ${topJugPct}%`)}
+    ${topJug.slice(1).map(([k,n],i)=>topRow(i+2,jugCount[k+'__name']||k,n)).join('')}
+    ${topJug.length===0?'<div style="color:var(--muted);font-size:.82rem">Sin datos</div>':''}`);
+
+  el.innerHTML=`<p style="font-size:.82rem;color:var(--muted);margin:0 0 1rem">${total} participante${total!==1?'s':''} confirmado${total!==1?'s':''}</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      ${campHtml}${espHtml}${golHtml}${jugHtml}
+    </div>`;
 }
 
 function tryAdmin(){if(isAdmin||localStorage.getItem('debug_started')==='1')showPage('admin');}
@@ -3688,7 +3814,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.7</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.3.8</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
