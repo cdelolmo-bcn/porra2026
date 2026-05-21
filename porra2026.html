@@ -258,7 +258,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.4.2</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.4.3</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1688,7 +1688,7 @@ async function admSearchBets(){
     const email=(document.getElementById('adm-edit-email')?.value||'').trim().toLowerCase();
     const res=document.getElementById('adm-edit-results');
     res.innerHTML='<div class="spin"></div>';
-    const{data,error}=await dbq(c=>c.from('porras').select('id,nombre,email,puntos,paid,data,user_id'),true);
+    const{data,error}=await dbq(c=>c.from('porras').select('id,nombre,email,puntos,paid,data,user_id,updated_at,admin_reviewed'),true);
     if(error||!data){res.innerHTML='<div class="alert aerr">Error cargando porras</div>';return;}
     // Build user_id -> account email map from user_emails view
     const uidEmailMap={};
@@ -1698,23 +1698,33 @@ async function admSearchBets(){
       const n=(r.nombre||'').toLowerCase();
       const e=(r.email||'').toLowerCase();
       return(!nombre||n.includes(nombre))&&(!email||e.includes(email));
-    }).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+    }).sort((a,b)=>{
+      // No revisadas primero, luego por updated_at desc
+      if(!a.admin_reviewed&&b.admin_reviewed)return -1;
+      if(a.admin_reviewed&&!b.admin_reviewed)return 1;
+      return new Date(b.updated_at||0)-new Date(a.updated_at||0);
+    });
     if(!filtered.length){res.innerHTML='<div class="hint" style="padding:.5rem;color:var(--muted)">No se encontraron porras.</div>';return;}
     let h='<div style="display:flex;flex-direction:column;gap:.4rem">';
     filtered.forEach(r=>{
       const ownerEmail=r.user_id?uidEmailMap[r.user_id]||'Sin cuenta':'Sin cuenta';
       const emailMismatch=r.user_id&&ownerEmail!==r.email;
-      h+=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:.5rem .8rem">
+      const pending=!r.admin_reviewed;
+      const updStr=r.updated_at?new Date(r.updated_at).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+      h+=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border:1px solid ${pending?'#fb923c':'var(--border)'};border-radius:8px;padding:.5rem .8rem">
         <div>
           <span style="font-weight:700;color:var(--text)">${esc(r.nombre)}</span>
+          ${pending?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fb923c;margin-left:.4rem;vertical-align:middle" title="Modificada recientemente"></span>':''}
           <span style="color:var(--muted);font-size:.75rem;margin-left:.5rem">${esc(r.email||'')}</span>
           <span style="color:var(--gold);font-size:.72rem;margin-left:.5rem">${r.puntos||0}pts</span>
           <span style="color:${r.paid?'#4ade80':'#f87171'};font-size:.72rem;margin-left:.4rem">${r.paid?'✅':'⏳'}</span>
           <div style="font-size:.7rem;color:${emailMismatch?'#fb923c':'var(--muted)'};margin-top:.15rem">
             👤 ${emailMismatch?'<strong>'+esc(ownerEmail)+'</strong>':esc(ownerEmail)}${r.user_id?'':' ⚠️'}
+            ${updStr?'<span style="margin-left:.5rem;opacity:.7">· '+updStr+'</span>':''}
           </div>
         </div>
         <div style="display:flex;gap:.3rem">
+          ${pending?`<button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem;color:#fb923c;border-color:#fb923c" onclick="admMarkReviewed(${r.id},this)" title="Marcar como revisada">✓</button>`:''}
           <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem" onclick="admLoadEditForm('${r.id}')">✏️ Editar</button>
           <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem" onclick="admExportXls('${r.id}')">📤</button>
           <button class="btn btn-ghost" style="font-size:.78rem;padding:.25rem .6rem;color:#f87171;border-color:#f87171" onclick="admDeleteBet('${r.id}','${escJ(r.nombre)}')">🗑️</button>
@@ -2379,6 +2389,13 @@ async function loadStats(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
       ${campHtml}${espHtml}${golHtml}${jugHtml}
     </div>`;
+}
+
+async function admMarkReviewed(id, btn){
+  btn.disabled=true;btn.textContent='...';
+  const{error}=await dbq(c=>c.from('porras').update({admin_reviewed:true}).eq('id',id));
+  if(error){btn.disabled=false;btn.textContent='✓';return;}
+  admSearchBets();
 }
 
 function tryAdmin(){if(isAdmin||localStorage.getItem('debug_started')==='1')showPage('admin');}
@@ -3834,7 +3851,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.4.2</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.4.3</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
