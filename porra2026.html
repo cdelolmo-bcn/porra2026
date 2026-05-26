@@ -335,7 +335,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.5.0</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.5.2</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -1714,6 +1714,15 @@ document.addEventListener('click',e=>{
 });
 
 function showPage(id){
+  if(id==='fantasy'){
+    if(!currentUser){openAuthModal();return;}
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('page-fantasy')?.classList.add('active');
+    document.getElementById('tab-fantasy')?.classList.add('active');
+    fantasyTab('myteam',document.getElementById('ftab-myteam'));
+    return;
+  }
   if((id==='porras'||id==='porra')&&!currentUser){openAuthModal();return;}
   if(id==='admin'&&!isAdmin&&localStorage.getItem('debug_started')!=='1')return;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -3150,6 +3159,14 @@ function showAdmModal(){} // removed - auth via Supabase
 function closeAdmModal(){}
 function checkAdm(){} // removed - auth via Supabase
 function admSec(sec,btn){
+  if(sec==='fantasy'){
+    document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+    if(btn)btn.classList.add('active');
+    const ac=document.getElementById('adm-content');
+    ac.innerHTML=fBuildAdminHTML();
+    fLoadAdminMatches();
+    return;
+  }
   document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');
   const ac=document.getElementById('adm-content');
   if(sec==='setup'){ac.innerHTML=buildSQL();return;}
@@ -3930,7 +3947,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.5.0</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.5.2</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -4573,34 +4590,8 @@ function fantasyTab(sec,btn){
   if(sec==='ranking')fLoadRanking();
 }
 
-// Extender showPage para fantasy
-const _fOrigShowPage=showPage;
-function showPage(id){
-  if(id==='fantasy'){
-    if(!currentUser){openAuthModal();return;}
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-    document.getElementById('page-fantasy')?.classList.add('active');
-    document.getElementById('tab-fantasy')?.classList.add('active');
-    fantasyTab('myteam',document.getElementById('ftab-myteam'));
-    return;
-  }
-  _fOrigShowPage(id);
-}
 
-// Extender admSec para fantasy
-const _fOrigAdmSec=admSec;
-function admSec(sec,btn){
-  if(sec==='fantasy'){
-    document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
-    if(btn)btn.classList.add('active');
-    const ac=document.getElementById('adm-content');
-    ac.innerHTML=fBuildAdminHTML();
-    fLoadAdminMatches();
-    return;
-  }
-  _fOrigAdmSec(sec,btn);
-}
+
 
 // ── Cargar jugadores con paginación ──
 async function fLoadPlayers(){
@@ -4680,6 +4671,7 @@ function fRenderMyTeamView(team,tps,scoreMap){
 }
 
 function fEditTeam(){
+  if(new Date()>=F_LOCK_DATE){alert('🔒 El plazo para editar el equipo fantasy ha cerrado.');return;}
   fEditMode=true;
   if(fTeam){fFormation=fTeam.formation;}
   fSlots={};fCaptain=null;
@@ -4701,8 +4693,8 @@ async function fPreloadSlots(){
 
 function fRenderBuilder(c){
   const locked=new Date()>=F_LOCK_DATE;
-  if(locked&&!fEditMode){
-    c.innerHTML='<div class="alert aerr">🔒 El plazo para crear tu equipo fantasy ha cerrado (11 jun 2026, 22:00h España).</div>';return;
+  if(locked){
+    c.innerHTML='<div class="alert aerr">🔒 El plazo para crear o editar el equipo fantasy ha cerrado (11 jun 2026, 22:00h España).</div>';return;
   }
   c.innerHTML=`<div class="card">
     <div class="card-title">🏗️ ${fTeam&&fEditMode?'Editar':'Crea'} tu equipo fantasy</div>
@@ -4729,7 +4721,30 @@ function fRenderFormations(){
   g.innerHTML=Object.keys(F_FORMATIONS).map(f=>`<button class="fformation-btn${f===fFormation?' active':''}" onclick="fSelectFormation('${f}')">${f}</button>`).join('');
 }
 
-function fSelectFormation(f){fFormation=f;fSlots={};fCaptain=null;fRenderFormations();fRenderField();fValidateTeam();}
+function fSelectFormation(f){
+  const oldForm=F_FORMATIONS[fFormation];
+  const newForm=F_FORMATIONS[f];
+  fFormation=f;
+  // Agrupar jugadores actuales por posición
+  const byPos={GK:[],DEF:[],MID:[],FWD:[]};
+  Object.entries(fSlots).forEach(([slot,pl])=>{
+    if(!pl)return;
+    const pos=slot.replace(/\d+$/,'');
+    if(byPos[pos])byPos[pos].push(pl);
+  });
+  // Reasignar slots con los que caben en la nueva formación
+  fSlots={};
+  const counts={GK:1,DEF:newForm.DEF,MID:newForm.MID,FWD:newForm.FWD};
+  Object.entries(counts).forEach(([pos,n])=>{
+    const available=byPos[pos]||[];
+    for(let i=1;i<=n;i++){
+      if(available[i-1])fSlots[pos+i]=available[i-1];
+    }
+  });
+  // Validar capitán sigue existiendo
+  if(fCaptain&&!fSlots[fCaptain])fCaptain=null;
+  fRenderFormations();fRenderField();fValidateTeam();
+}
 
 function fRenderField(){
   const w=document.getElementById('fantasy-field-wrap');if(!w)return;
@@ -4829,6 +4844,7 @@ function fValidateTeam(){
 }
 
 async function fSaveTeam(){
+  if(new Date()>=F_LOCK_DATE){showMsg('fsave-msg','🔒 El plazo para guardar el equipo ha cerrado.','err');return;}
   if(!fValidateTeam())return;if(!currentUser){openAuthModal();return;}
   const btn=document.getElementById('fbtn-save');const spin=document.getElementById('fsave-spin');const msg=document.getElementById('fsave-msg');
   btn.disabled=true;btn.textContent='Guardando...';spin.style.display='';msg.innerHTML='';
@@ -4858,11 +4874,27 @@ async function fSaveTeam(){
 async function fLoadRanking(){
   const c=document.getElementById('fantasy-ranking-container');if(!c)return;
   c.innerHTML='<div style="text-align:center;padding:1.5rem"><div class="spin"></div></div>';
+  const mundialStarted=deadlinePassed();
+  const simMode=localStorage.getItem('debug_started')==='1';
+  const showTeams=mundialStarted||simMode;
   const{data}=await dbq(c=>c.from('fantasy_teams').select('id,total_points,formation,user_id').eq('season_id',F_SEASON_ID).order('total_points',{ascending:false}));
   if(!data||!data.length){c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)">Aún no hay equipos registrados.</div>';return;}
   const uids=data.map(t=>t.user_id);
   const{data:porras}=await dbq(c=>c.from('porras').select('user_id,nombre').in('user_id',uids));
   const nm={};porras?.forEach(p=>{nm[p.user_id]=p.nombre;});
+  if(!showTeams){
+    c.innerHTML='<div class="alert ainfo" style="margin-bottom:.75rem">🔒 Los equipos de los demás participantes se revelarán cuando comience el Mundial.</div>'+
+      data.map((t,i)=>{
+        const pos=i+1;const pc=pos<=3?` g${pos}`:'';const me=currentUser&&t.user_id===currentUser.id;
+        const name=me?(nm[t.user_id]||'Tú'):'—';
+        return `<div class="frank-row${me?' frank-me':''}">
+          <div class="frank-pos${pc}">${pos}</div>
+          <div><div style="font-weight:500">${me?esc(name):'<span style="color:var(--muted)">Participante</span>'}</div><div style="font-size:.7rem;color:var(--muted)">${me?t.formation:'?-?-?'}</div></div>
+          <div class="frank-pts">${me?t.total_points||0+'  pts':'— pts'}</div>
+        </div>`;
+      }).join('');
+    return;
+  }
   c.innerHTML=data.map((t,i)=>{
     const pos=i+1;const pc=pos<=3?` g${pos}`:'';const me=currentUser&&t.user_id===currentUser.id;
     const name=nm[t.user_id]||'Anónimo';
