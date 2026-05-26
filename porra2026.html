@@ -252,13 +252,90 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 #debug-bar{display:none;background:linear-gradient(90deg,#7c2d12,#92400e);border-bottom:2px solid #f97316;padding:.3rem 1.2rem;font-size:.75rem;color:#fed7aa;text-align:center;position:sticky;top:0;z-index:99}
 #debug-bar.active{display:flex;align-items:center;justify-content:center;gap:.75rem}
 @media(max-width:700px){.bracket-wrap{grid-template-columns:1fr}.page{padding:1rem}.groups-grid{grid-template-columns:1fr}.sinp{width:26px!important}}
+
+/* ══ FANTASY ══ */
+.fantasy-field{background:linear-gradient(180deg,#163a16 0%,#1a4a1a 40%,#1a4a1a 60%,#163a16 100%);border-radius:12px;padding:1rem .6rem;position:relative;border:2px solid #2a5a2a;margin-bottom:1rem;overflow:hidden}
+.fantasy-field::before{content:'';position:absolute;inset:0;border:6px solid rgba(255,255,255,.06);border-radius:10px;pointer-events:none}
+.fantasy-field::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.06);transform:translateX(-50%)}
+.field-center-circle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:70px;height:70px;border:1px solid rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
+.field-row{display:flex;justify-content:center;gap:.45rem;margin-bottom:.55rem;position:relative;z-index:1;width:100%}
+.field-row:last-child{margin-bottom:0}
+.field-slot{width:74px;min-height:82px;background:rgba(0,0,0,.45);border:2px dashed rgba(255,255,255,.18);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;padding:.3rem .2rem;text-align:center;position:relative}
+.field-slot:hover{border-color:var(--gold);background:rgba(244,162,97,.12);transform:translateY(-2px)}
+.field-slot.filled{border-style:solid;border-color:var(--green);background:rgba(42,157,143,.18)}
+.field-slot.filled:hover{border-color:var(--gold);background:rgba(244,162,97,.15)}
+.field-slot.captain{border-color:var(--gold);background:rgba(244,162,97,.22)}
+.fslot-pos{font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.18rem;padding:.1rem .3rem;border-radius:3px}
+.fpos-GK{background:rgba(230,57,70,.25);color:#fca5a5}.fpos-DEF{background:rgba(42,157,143,.25);color:#6ee7b7}.fpos-MID{background:rgba(59,130,246,.25);color:#93c5fd}.fpos-FWD{background:rgba(244,162,97,.25);color:#fbbf24}
+.fslot-name{font-size:.69rem;font-weight:600;color:var(--text);line-height:1.2;word-break:break-word}
+.fslot-team{font-size:.58rem;color:var(--muted);margin-top:.08rem}
+.fslot-add{font-size:1.6rem;color:rgba(255,255,255,.25);line-height:1}
+.fslot-cap{position:absolute;top:-7px;right:-7px;background:var(--gold);color:#000;font-size:.6rem;font-weight:900;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+.fslot-edit{position:absolute;bottom:2px;right:3px;font-size:.6rem;color:var(--muted);cursor:pointer;opacity:0;transition:opacity .15s}
+.field-slot.filled:hover .fslot-edit{opacity:1}
+.fpicker-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
+.fpicker-overlay.open{display:flex}
+.fpicker-box{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:1.2rem;width:min(540px,96vw);margin:auto}
+.fpicker-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.85rem}
+.fpicker-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1px}
+.fpicker-sub{font-size:.74rem;color:var(--muted);margin-top:.12rem}
+.fpicker-filters{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.65rem}
+.fpos-filter{padding:.22rem .65rem;border-radius:20px;font-size:.73rem;font-weight:600;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;transition:all .15s;font-family:inherit}
+.fpos-filter.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fplayer-search{width:100%;padding:.42rem .75rem;background:var(--surf2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:inherit;font-size:.88rem;margin-bottom:.65rem;transition:border-color .15s}
+.fplayer-search:focus{outline:none;border-color:var(--accent)}
+.fplayers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:.38rem;max-height:300px;overflow-y:auto;padding-right:.2rem}
+.fplayers-grid::-webkit-scrollbar{width:4px}.fplayers-grid::-webkit-scrollbar-track{background:var(--surf2)}.fplayers-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.fplayer-card{background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:.48rem .6rem;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.45rem}
+.fplayer-card:hover{border-color:var(--gold);background:rgba(244,162,97,.08)}
+.fplayer-card.fpicked{border-color:var(--green);opacity:.55;cursor:not-allowed}.fplayer-card.fpicked:hover{border-color:var(--green);background:var(--surf2)}
+.fplayer-card.fmaxc{opacity:.3;cursor:not-allowed}.fplayer-card.fmaxc:hover{border-color:var(--border);background:var(--surf2)}
+.fpcard-pos{font-size:.6rem;font-weight:800;padding:.12rem .32rem;border-radius:3px;flex-shrink:0}
+.fpcard-info{min-width:0;flex:1}
+.fpcard-name{font-size:.77rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fpcard-team{font-size:.64rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fteam-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:.85rem}
+.fts-stat{background:var(--surf2);border-radius:8px;padding:.6rem;text-align:center;border:1px solid var(--border)}
+.fts-num{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--gold)}
+.fts-lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.fformation-grid{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.fformation-btn{padding:.45rem .9rem;border-radius:8px;border:2px solid var(--border);background:var(--surf2);color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s;font-family:inherit}
+.fformation-btn:hover{border-color:var(--gold);color:var(--gold)}
+.fformation-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(230,57,70,.1)}
+.frank-row{display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:.6rem;padding:.55rem .75rem;border-bottom:1px solid var(--border);font-size:.85rem}
+.frank-row:hover{background:var(--surf2)}.frank-row.frank-me{background:rgba(42,157,143,.08);border-left:3px solid var(--green)}
+.frank-pos{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--muted);text-align:center}
+.frank-pos.g1{color:#ffd700}.frank-pos.g2{color:#c0c0c0}.frank-pos.g3{color:#cd7f32}
+.frank-pts{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--gold)}
+.mytp-row{display:flex;align-items:center;gap:.6rem;padding:.4rem .6rem;border-bottom:1px solid var(--border);font-size:.83rem}
+.mytp-row:last-child{border:none}
+.mytp-pos{font-size:.6rem;font-weight:700;padding:.1rem .35rem;border-radius:3px;flex-shrink:0}
+.mytp-name{flex:1;font-weight:500}.mytp-team{font-size:.7rem;color:var(--muted);flex-shrink:0}
+.mytp-pts{font-size:.85rem;font-weight:700;color:var(--gold);flex-shrink:0;min-width:40px;text-align:right}
+.mytp-cap{font-size:.65rem;background:var(--gold);color:#000;padding:.1rem .3rem;border-radius:3px;font-weight:800;flex-shrink:0}
+.mytp-inactive{opacity:.45}
+@media(max-width:700px){
+  .field-row{gap:.28rem}
+  .field-slot{width:auto;flex:1;min-width:0;min-height:72px;padding:.25rem .1rem}
+  .fslot-name{font-size:.62rem}.fslot-team{font-size:.52rem}
+  .fslot-pos{font-size:.52rem;padding:.08rem .22rem}
+  .fslot-cap{width:15px;height:15px;font-size:.52rem;top:-5px;right:-5px}
+  .fpicker-overlay{padding:0;align-items:flex-end}
+  .fpicker-box{border-radius:16px 16px 0 0;width:100%;max-height:88vh;overflow-y:auto;margin:0}
+  .fplayers-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));max-height:45vh}
+  .fformation-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem}
+  .fformation-btn{text-align:center}
+  .fteam-summary{gap:.35rem}
+  .fts-num{font-size:1.2rem}
+}
+
 </style>
 </head>
 <body>
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.4.5</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.5.0</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -282,6 +359,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
     <button class="nav-btn" id="tab-muro" onclick="showPage('muro')">💬 <span id="lbl-muro">Muro</span></button>
     <button class="nav-btn" id="tab-simulador" onclick="showPage('simulador')">🧪 <span id="lbl-simulador">Simulador</span></button>
     <button class="nav-btn" id="tab-stats" onclick="showPage('stats')">📊 <span id="lbl-stats">Estadísticas</span></button>
+    <button class="nav-btn" id="tab-fantasy" onclick="showPage('fantasy')">⚽ Fantasy</button>
     </div>
   </div>
   <div class="header-deadline" id="deadline-wrap"></div>
@@ -366,6 +444,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
       <button class="stab" onclick="admSec('muro',this)">💬 Muro</button>
       <button class="stab" onclick="admSec('editbet',this)">✏️ Editar Porra</button>
       <button class="stab" onclick="admSec('importxls',this)">📥 Importar Excel</button>
+      <button class="stab" onclick="admSec('fantasy',this)">⚽ Fantasy</button>
     </div>
     <div id="adm-content"></div>
   </div>
@@ -3851,7 +3930,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.4.5</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.5.0</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -4460,7 +4539,506 @@ function showMsg(id,msg,type){
   if(type==='ok'||type==='info')setTimeout(()=>{if(el)el.innerHTML='';},5000);
 }
 
+
+
+// ══ FANTASY ══
+const F_SEASON_ID = '6a28c0d3-db64-44ca-8b1c-43f7dd79473d';
+const F_LOCK_DATE = new Date('2026-06-11T20:00:00Z');
+const F_SS_BASE   = 'https://www.sofascore.com/api/v1';
+
+const F_FORMATIONS = {
+  '4-3-3':{DEF:4,MID:3,FWD:3},'4-4-2':{DEF:4,MID:4,FWD:2},
+  '4-5-1':{DEF:4,MID:5,FWD:1},'5-3-2':{DEF:5,MID:3,FWD:2},'5-4-1':{DEF:5,MID:4,FWD:1}
+};
+const F_POS_LABELS = {GK:'Portero',DEF:'Defensa',MID:'Centrocampista',FWD:'Delantero'};
+const F_POS_COLORS = {
+  GK:'background:rgba(230,57,70,.22);color:#fca5a5',
+  DEF:'background:rgba(42,157,143,.22);color:#6ee7b7',
+  MID:'background:rgba(59,130,246,.22);color:#93c5fd',
+  FWD:'background:rgba(244,162,97,.22);color:#fbbf24'
+};
+
+let fPlayers=[],fTeam=null,fSlots={},fCaptain=null,fPickerSlot=null,fPickerPos=null,fPickerFilter='ALL';
+let fFormation='4-3-3',fEditMode=false;
+
+// ── Navegación ──
+function fantasyTab(sec,btn){
+  document.querySelectorAll('#page-fantasy .stab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  ['myteam','ranking','normas'].forEach(s=>{
+    const el=document.getElementById('fsec-'+s);
+    if(el)el.style.display=s===sec?'':'none';
+  });
+  if(sec==='myteam')fLoadMyTeam();
+  if(sec==='ranking')fLoadRanking();
+}
+
+// Extender showPage para fantasy
+const _fOrigShowPage=showPage;
+function showPage(id){
+  if(id==='fantasy'){
+    if(!currentUser){openAuthModal();return;}
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('page-fantasy')?.classList.add('active');
+    document.getElementById('tab-fantasy')?.classList.add('active');
+    fantasyTab('myteam',document.getElementById('ftab-myteam'));
+    return;
+  }
+  _fOrigShowPage(id);
+}
+
+// Extender admSec para fantasy
+const _fOrigAdmSec=admSec;
+function admSec(sec,btn){
+  if(sec==='fantasy'){
+    document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+    if(btn)btn.classList.add('active');
+    const ac=document.getElementById('adm-content');
+    ac.innerHTML=fBuildAdminHTML();
+    fLoadAdminMatches();
+    return;
+  }
+  _fOrigAdmSec(sec,btn);
+}
+
+// ── Cargar jugadores con paginación ──
+async function fLoadPlayers(){
+  if(fPlayers.length>0)return;
+  let all=[],from=0;
+  while(true){
+    const{data,error}=await dbq(c=>c.from('fantasy_players')
+      .select('id,name,short_name,position,country_code,team_name,active,sofascore_player_id')
+      .eq('season_id',F_SEASON_ID).order('team_name').order('name')
+      .range(from,from+999));
+    if(error||!data)break;
+    all=all.concat(data);
+    if(data.length<1000)break;
+    from+=1000;
+  }
+  fPlayers=all;
+}
+
+// ── Mi equipo ──
+async function fLoadMyTeam(){
+  const c=document.getElementById('fantasy-team-container');
+  if(!c)return;
+  if(!currentUser){c.innerHTML='<div class="alert ainfo">🔐 Inicia sesión para crear tu equipo fantasy.</div>';return;}
+  c.innerHTML='<div style="text-align:center;padding:2rem"><div class="spin"></div></div>';
+  await fLoadPlayers();
+  const{data:team}=await dbq(c=>c.from('fantasy_teams')
+    .select('*').eq('user_id',currentUser.id).eq('season_id',F_SEASON_ID).maybeSingle(),true);
+  if(team&&!fEditMode){
+    fTeam=team;
+    const{data:tps}=await dbq(c=>c.from('fantasy_team_players')
+      .select('*,fantasy_players(*)').eq('fantasy_team_id',team.id));
+    const pids=(tps||[]).map(tp=>tp.player_id);
+    let scoreMap={};
+    if(pids.length>0){
+      const{data:scores}=await dbq(c=>c.from('fantasy_player_scores')
+        .select('player_id,points_base').in('player_id',pids));
+      scores?.forEach(s=>{scoreMap[s.player_id]=(scoreMap[s.player_id]||0)+s.points_base;});
+    }
+    fRenderMyTeamView(team,tps||[],scoreMap);
+  }else{
+    fRenderBuilder(c);
+  }
+}
+
+function fRenderMyTeamView(team,tps,scoreMap){
+  const c=document.getElementById('fantasy-team-container');
+  const locked=team.locked;
+  const byPos={GK:[],DEF:[],MID:[],FWD:[]};
+  tps.forEach(tp=>{const pos=tp.fantasy_players?.position;if(byPos[pos])byPos[pos].push(tp);});
+  let h=`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.85rem;flex-wrap:wrap;gap:.5rem">
+      <div><div class="card-title" style="margin-bottom:.15rem">⚽ Mi Equipo Fantasy</div>
+      <div style="font-size:.76rem;color:var(--muted)">Formación: <strong style="color:var(--gold)">${team.formation}</strong> · ${locked?'<span style="color:var(--accent)">🔒 Cerrado</span>':'<span style="color:var(--green)">✅ Activo</span>'}</div></div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <div style="text-align:right"><div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--gold);line-height:1">${team.total_points||0}</div><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase">puntos</div></div>
+        ${!locked?`<button class="btn btn-ghost" onclick="fEditTeam()" style="font-size:.8rem">✏️ Editar</button>`:''}
+      </div>
+    </div>`;
+  ['GK','DEF','MID','FWD'].forEach(pos=>{
+    if(!byPos[pos].length)return;
+    const lbl={GK:'Portero',DEF:'Defensas',MID:'Centrocampistas',FWD:'Delanteros'}[pos];
+    h+=`<div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:.5rem 0 .25rem">${lbl}</div>`;
+    byPos[pos].forEach(tp=>{
+      const pl=tp.fantasy_players;const pts=scoreMap[tp.player_id]||0;
+      const capPts=tp.is_captain?pts*2:pts;const inactive=pl&&!pl.active;
+      h+=`<div class="mytp-row${inactive?' mytp-inactive':''}">
+        <span class="mytp-pos fpos-${pos}" style="${F_POS_COLORS[pos]}">${pos}</span>
+        <span class="mytp-name">${pl?.name||'—'}${inactive?' <span style="font-size:.65rem;color:var(--muted)">(eliminado)</span>':''}</span>
+        <span class="mytp-team">${pl?.team_name||''}</span>
+        ${tp.is_captain?'<span class="mytp-cap">C</span>':''}
+        <span class="mytp-pts">${capPts||pts} pts</span>
+      </div>`;
+    });
+  });
+  h+='</div>';
+  c.innerHTML=h;
+}
+
+function fEditTeam(){
+  fEditMode=true;
+  if(fTeam){fFormation=fTeam.formation;}
+  fSlots={};fCaptain=null;
+  const c=document.getElementById('fantasy-team-container');
+  fRenderBuilder(c);
+  fPreloadSlots();
+}
+
+async function fPreloadSlots(){
+  if(!fTeam)return;
+  const{data:tps}=await dbq(c=>c.from('fantasy_team_players')
+    .select('*,fantasy_players(*)').eq('fantasy_team_id',fTeam.id));
+  if(!tps)return;
+  fSlots={};fCaptain=null;
+  tps.forEach(tp=>{fSlots[tp.position_slot]=tp.fantasy_players;if(tp.is_captain)fCaptain=tp.position_slot;});
+  fFormation=fTeam.formation;
+  fRenderFormations();fRenderField();
+}
+
+function fRenderBuilder(c){
+  const locked=new Date()>=F_LOCK_DATE;
+  if(locked&&!fEditMode){
+    c.innerHTML='<div class="alert aerr">🔒 El plazo para crear tu equipo fantasy ha cerrado (11 jun 2026, 22:00h España).</div>';return;
+  }
+  c.innerHTML=`<div class="card">
+    <div class="card-title">🏗️ ${fTeam&&fEditMode?'Editar':'Crea'} tu equipo fantasy</div>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:.85rem">Elige formación y selecciona 11 jugadores. Pulsa sobre un jugador del campo para designarlo capitán (×2 puntos). Máx. 3 jugadores de la misma selección.</div>
+    <div style="font-size:.74rem;color:var(--muted);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Formación</div>
+    <div class="fformation-grid" id="fformation-grid"></div>
+    <div id="fantasy-field-wrap"></div>
+    <div class="field-hint">Pulsa un slot vacío para elegir jugador · Pulsa un jugador para hacer capitán</div>
+    <div id="fvalidation-msg" style="margin-top:.75rem"></div>
+    <div style="margin-top:.85rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-success" id="fbtn-save" onclick="fSaveTeam()" style="flex:1;font-size:.9rem;padding:.7rem" disabled>✅ Guardar equipo</button>
+      <span id="fsave-spin" style="display:none"><div class="spin"></div></span>
+    </div>
+    <div id="fsave-msg" style="margin-top:.5rem"></div>
+    ${fTeam&&fEditMode?'<button class="btn btn-ghost" onclick="fCancelEdit()" style="width:100%;margin-top:.5rem;font-size:.82rem">Cancelar</button>':''}
+  </div>`;
+  fRenderFormations();fRenderField();
+}
+
+function fCancelEdit(){fEditMode=false;fTeam&&fLoadMyTeam();}
+
+function fRenderFormations(){
+  const g=document.getElementById('fformation-grid');if(!g)return;
+  g.innerHTML=Object.keys(F_FORMATIONS).map(f=>`<button class="fformation-btn${f===fFormation?' active':''}" onclick="fSelectFormation('${f}')">${f}</button>`).join('');
+}
+
+function fSelectFormation(f){fFormation=f;fSlots={};fCaptain=null;fRenderFormations();fRenderField();fValidateTeam();}
+
+function fRenderField(){
+  const w=document.getElementById('fantasy-field-wrap');if(!w)return;
+  const form=F_FORMATIONS[fFormation];
+  const makeRow=(pos,count)=>{
+    const slots=Array.from({length:count},(_,i)=>{
+      const key=`${pos}${i+1}`;const pl=fSlots[key];const isCap=fCaptain===key;
+      if(pl){return `<div class="field-slot filled${isCap?' captain':''}" onclick="fToggleCaptain('${key}')" title="${isCap?'★ Capitán · click para quitar':'Click para hacer capitán'}">
+        ${isCap?'<div class="fslot-cap">C</div>':''}
+        <span class="fslot-pos fpos-${pos}">${pos}</span>
+        <div class="fslot-name">${pl.short_name||pl.name.split(' ').pop()}</div>
+        <div class="fslot-team">${pl.team_name}</div>
+        <div class="fslot-edit" onclick="event.stopPropagation();fOpenPicker('${key}','${pos}')">✏️</div>
+      </div>`;}
+      return `<div class="field-slot" onclick="fOpenPicker('${key}','${pos}')"><span class="fslot-pos fpos-${pos}">${pos}</span><div class="fslot-add">+</div></div>`;
+    }).join('');
+    return `<div class="field-row">${slots}</div>`;
+  };
+  const form2=F_FORMATIONS[fFormation];
+  const filled=Object.values(fSlots).filter(Boolean).length;
+  const total=1+form2.DEF+form2.MID+form2.FWD;
+  w.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;gap:.3rem">
+    <div style="font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Campo</div>
+    <div style="font-size:.78rem;color:var(--muted)">${filled}/${total} jugadores</div>
+  </div>
+  <div class="fteam-summary">
+    <div class="fts-stat"><div class="fts-num" id="fsum-p">${filled}</div><div class="fts-lbl">Jugadores</div></div>
+    <div class="fts-stat"><div class="fts-num" id="fsum-c">${new Set(Object.values(fSlots).filter(Boolean).map(p=>p.country_code)).size}</div><div class="fts-lbl">Selecciones</div></div>
+    <div class="fts-stat"><div class="fts-num" id="fsum-cap" style="font-size:.95rem;padding-top:.15rem">${fCaptain&&fSlots[fCaptain]?(fSlots[fCaptain].short_name||fSlots[fCaptain].name.split(' ').pop()):'—'}</div><div class="fts-lbl">Capitán</div></div>
+  </div>
+  <div class="fantasy-field" id="fantasy-field">
+    <div class="field-center-circle"></div>
+    ${makeRow('FWD',form.FWD)}${makeRow('MID',form.MID)}${makeRow('DEF',form.DEF)}${makeRow('GK',1)}
+  </div>`;
+}
+
+function fToggleCaptain(key){fCaptain=fCaptain===key?null:key;fRenderField();fValidateTeam();}
+
+function fOpenPicker(slotKey,pos){
+  fPickerSlot=slotKey;fPickerPos=pos;fPickerFilter='ALL';
+  document.getElementById('fpicker-overlay').classList.add('open');
+  document.getElementById('fpicker-title').textContent=`Elige ${F_POS_LABELS[pos]}`;
+  document.getElementById('fpicker-search').value='';
+  const filled=Object.entries(fSlots).filter(([k,p])=>p&&k!==slotKey).length;
+  const total=1+F_FORMATIONS[fFormation].DEF+F_FORMATIONS[fFormation].MID+F_FORMATIONS[fFormation].FWD;
+  document.getElementById('fpicker-sub').textContent=`${filled}/${total} elegidos · Máx. 3 por selección`;
+  const note=document.getElementById('fpicker-pos-note');
+  if(pos==='MID'){note.textContent='⚠️ Posiciones según SofaScore — algunos extremos como Yamal o Nico Williams aparecen aquí como centrocampistas.';note.style.display='';}
+  else note.style.display='none';
+  document.getElementById('fpicker-filters').innerHTML=`
+    <button class="fpos-filter active" onclick="fSetPickerFilter('ALL',this)">Todos los ${F_POS_LABELS[pos]}s</button>
+    <button class="fpos-filter" onclick="fSetPickerFilter('country',this)">Por selección</button>`;
+  fRenderPicker();
+}
+
+function fClosePicker(){document.getElementById('fpicker-overlay').classList.remove('open');fPickerSlot=null;fPickerPos=null;}
+function fSetPickerFilter(f,btn){fPickerFilter=f;document.querySelectorAll('#fpicker-filters .fpos-filter').forEach(b=>b.classList.remove('active'));btn.classList.add('active');fRenderPicker();}
+
+function fNorm(s){if(!s)return'';return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
+
+function fRenderPicker(){
+  const grid=document.getElementById('fpicker-grid');
+  const search=fNorm(document.getElementById('fpicker-search').value);
+  const pos=fPickerPos;
+  const pickedIds=new Set(Object.entries(fSlots).filter(([k,p])=>p&&k!==fPickerSlot).map(([,p])=>p.id));
+  const cc={};Object.entries(fSlots).forEach(([k,p])=>{if(p&&k!==fPickerSlot)cc[p.country_code]=(cc[p.country_code]||0)+1;});
+  let players=fPlayers.filter(p=>p.position===pos);
+  if(fPickerFilter==='country')players=[...players].sort((a,b)=>a.team_name.localeCompare(b.team_name));
+  if(search)players=players.filter(p=>fNorm(p.name).includes(search)||fNorm(p.short_name).includes(search)||fNorm(p.team_name).includes(search));
+  if(!players.length){grid.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.82rem;grid-column:1/-1">No hay jugadores que coincidan</div>';return;}
+  grid.innerHTML=players.slice(0,100).map(p=>{
+    const isPicked=pickedIds.has(p.id);const maxC=!isPicked&&(cc[p.country_code]||0)>=3;
+    const cls=isPicked?'fpicked':maxC?'fmaxc':'';const clickable=!isPicked&&!maxC;
+    return `<div class="fplayer-card${cls?' '+cls:''}" title="${maxC?'Máx. 3 de '+p.team_name:isPicked?'Ya en tu equipo':p.name}" onclick="${clickable?`fPickPlayer('${p.id}')`:''}" >
+      <span class="fpcard-pos" style="${F_POS_COLORS[p.position]||''}">${p.position}</span>
+      <div class="fpcard-info"><div class="fpcard-name">${p.short_name||p.name}</div><div class="fpcard-team">${p.team_name}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function fPickPlayer(playerId){
+  const p=fPlayers.find(p=>p.id===playerId);if(!p||!fPickerSlot)return;
+  fSlots[fPickerSlot]=p;fClosePicker();fRenderField();fValidateTeam();
+}
+
+function fValidateTeam(){
+  const form=F_FORMATIONS[fFormation];const total=1+form.DEF+form.MID+form.FWD;
+  const players=Object.values(fSlots).filter(Boolean);const errors=[];
+  if(players.length<total)errors.push(`Faltan ${total-players.length} jugador${total-players.length>1?'es':''}`);
+  const cc={};players.forEach(p=>{cc[p.country_code]=(cc[p.country_code]||0)+1;});
+  Object.entries(cc).forEach(([c,n])=>{if(n>3)errors.push(`Máx. 3 jugadores de la misma selección (${c}: ${n})`);});
+  if(!fCaptain||!fSlots[fCaptain])errors.push('Pulsa sobre un jugador en el campo para designar capitán');
+  const msg=document.getElementById('fvalidation-msg');const btn=document.getElementById('fbtn-save');
+  if(msg)msg.innerHTML=errors.length?`<div class="alert awarn">${errors.map(e=>`• ${e}`).join('<br>')}</div>`:'<div class="alert aok">✅ Equipo completo y válido</div>';
+  if(btn)btn.disabled=errors.length>0;
+  return errors.length===0;
+}
+
+async function fSaveTeam(){
+  if(!fValidateTeam())return;if(!currentUser){openAuthModal();return;}
+  const btn=document.getElementById('fbtn-save');const spin=document.getElementById('fsave-spin');const msg=document.getElementById('fsave-msg');
+  btn.disabled=true;btn.textContent='Guardando...';spin.style.display='';msg.innerHTML='';
+  try{
+    let teamId=fTeam?.id;
+    if(!teamId){
+      const{data,error}=await dbq(c=>c.from('fantasy_teams').insert({user_id:currentUser.id,season_id:F_SEASON_ID,formation:fFormation,total_points:0,locked:false}).select().single(),true);
+      if(error)throw new Error(error.message);
+      teamId=data.id;fTeam=data;
+    }else{
+      await dbq(c=>c.from('fantasy_teams').update({formation:fFormation}).eq('id',teamId),true);
+    }
+    await dbq(c=>c.from('fantasy_team_players').delete().eq('fantasy_team_id',teamId),true);
+    const inserts=Object.entries(fSlots).filter(([,p])=>p).map(([slot,p])=>({fantasy_team_id:teamId,player_id:p.id,position_slot:slot,is_captain:slot===fCaptain}));
+    const{error:e2}=await dbq(c=>c.from('fantasy_team_players').insert(inserts),true);
+    if(e2)throw new Error(e2.message);
+    fEditMode=false;btn.disabled=false;btn.innerHTML='✅ Guardar equipo';spin.style.display='none';
+    msg.innerHTML='<div class="alert aok">✅ Equipo guardado correctamente</div>';
+    setTimeout(()=>fLoadMyTeam(),1000);
+  }catch(e){
+    msg.innerHTML=`<div class="alert aerr">❌ Error: ${e.message}</div>`;
+    btn.disabled=false;btn.innerHTML='✅ Guardar equipo';spin.style.display='none';
+  }
+}
+
+// ── Clasificación ──
+async function fLoadRanking(){
+  const c=document.getElementById('fantasy-ranking-container');if(!c)return;
+  c.innerHTML='<div style="text-align:center;padding:1.5rem"><div class="spin"></div></div>';
+  const{data}=await dbq(c=>c.from('fantasy_teams').select('id,total_points,formation,user_id').eq('season_id',F_SEASON_ID).order('total_points',{ascending:false}));
+  if(!data||!data.length){c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)">Aún no hay equipos registrados.</div>';return;}
+  const uids=data.map(t=>t.user_id);
+  const{data:porras}=await dbq(c=>c.from('porras').select('user_id,nombre').in('user_id',uids));
+  const nm={};porras?.forEach(p=>{nm[p.user_id]=p.nombre;});
+  c.innerHTML=data.map((t,i)=>{
+    const pos=i+1;const pc=pos<=3?` g${pos}`:'';const me=currentUser&&t.user_id===currentUser.id;
+    const name=nm[t.user_id]||'Anónimo';
+    return `<div class="frank-row${me?' frank-me':''}">
+      <div class="frank-pos${pc}">${pos}</div>
+      <div><div style="font-weight:500">${esc(name)}</div><div style="font-size:.7rem;color:var(--muted)">${t.formation}</div></div>
+      <div class="frank-pts">${t.total_points||0} pts</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Admin: panel fantasy ──
+function fBuildAdminHTML(){
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+    <div><div style="font-weight:600;margin-bottom:.18rem">Sincronización de partidos</div>
+    <div style="font-size:.78rem;color:var(--muted)">Sincroniza los partidos acabados con SofaScore y recalcula los puntos de todos los equipos.</div></div>
+    <button class="btn btn-success" onclick="fSyncAll()" id="fbtn-sync">🔄 Sincronizar pendientes</button>
+  </div>
+  <div id="fsync-log" style="background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:.75rem;font-family:monospace;font-size:.72rem;color:#86efac;max-height:200px;overflow-y:auto;display:none;margin-bottom:1rem;white-space:pre-wrap"></div>
+  <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Partidos pendientes</div>
+  <div id="fadm-matches"><div style="text-align:center;padding:1.5rem"><div class="spin"></div></div></div>
+  <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Gestión</div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="fLockTeams()" style="font-size:.8rem">🔒 Cerrar equipos</button>
+    </div>
+  </div>`;
+}
+
+async function fLoadAdminMatches(){
+  const c=document.getElementById('fadm-matches');if(!c)return;
+  const now=new Date().toISOString();
+  const{data}=await dbq(c=>c.from('fantasy_matches').select('*').eq('season_id',F_SEASON_ID).neq('status','synced').lt('match_date',now).order('match_date',{ascending:false}).limit(20));
+  if(!data||!data.length){c.innerHTML='<div style="color:var(--muted);font-size:.82rem;padding:.5rem 0">No hay partidos pendientes.</div>';return;}
+  c.innerHTML=data.map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;border-bottom:1px solid var(--border);gap:.5rem;flex-wrap:wrap">
+    <div><div style="font-size:.83rem;font-weight:500">${esc(m.home_team)} vs ${esc(m.away_team)}</div>
+    <div style="font-size:.72rem;color:var(--muted)">${new Date(m.match_date).toLocaleDateString('es')} · ${m.round}</div></div>
+    <span style="font-size:.72rem;padding:.15rem .5rem;border-radius:20px;background:rgba(244,162,97,.15);color:var(--gold)">⏳ Pendiente</span>
+  </div>`).join('');
+}
+
+function fSyncLog(msg){
+  const log=document.getElementById('fsync-log');if(!log)return;
+  log.style.display='';log.textContent+=msg+'\n';log.scrollTop=log.scrollHeight;
+}
+
+async function fSyncAll(){
+  const btn=document.getElementById('fbtn-sync');const log=document.getElementById('fsync-log');
+  if(log){log.textContent='';log.style.display='';}
+  if(btn){btn.disabled=true;btn.textContent='⏳ Sincronizando...';}
+  fSyncLog('=== Iniciando sincronización ===');
+  await fLoadPlayers();
+  const now=new Date().toISOString();
+  const{data:matches}=await dbq(c=>c.from('fantasy_matches').select('*').eq('season_id',F_SEASON_ID).neq('status','synced').lt('match_date',now).order('match_date'));
+  if(!matches||!matches.length){fSyncLog('No hay partidos pendientes.');if(btn){btn.disabled=false;btn.textContent='🔄 Sincronizar pendientes';}return;}
+  fSyncLog(`Partidos pendientes: ${matches.length}`);
+  let synced=0;
+  for(const m of matches){
+    fSyncLog(`\n▶ ${m.home_team} vs ${m.away_team}`);
+    const ok=await fSyncMatch(m);
+    if(ok){synced++;fSyncLog('  ✓ Sincronizado');}else fSyncLog('  ⚠ No finalizado aún');
+    await new Promise(r=>setTimeout(r,1200));
+  }
+  if(synced>0){fSyncLog('\n⚡ Recalculando puntos...');await fRecalcPoints();fSyncLog('✓ Puntos actualizados');}
+  fSyncLog(`\n=== Fin: ${synced} sincronizados ===`);
+  if(btn){btn.disabled=false;btn.textContent='🔄 Sincronizar pendientes';}
+  fLoadAdminMatches();
+}
+
+async function fSyncMatch(match){
+  const mid=match.sofascore_match_id;
+  const ev=await fSsGet(`/event/${mid}`);
+  if(!ev?.event||ev.event.status?.type!=='finished')return false;
+  const homeScore=ev.event.homeScore?.current??0,awayScore=ev.event.awayScore?.current??0;
+  const lineups=await fSsGet(`/event/${mid}/lineups`);if(!lineups)return false;
+  const incData=await fSsGet(`/event/${mid}/incidents`);
+  const incs=incData?.incidents||[];
+  const cards={};
+  incs.forEach(inc=>{if(inc.incidentType==='card'&&inc.player?.id){const pid=inc.player.id;if(!cards[pid])cards[pid]={y:0,r:0};if(inc.incidentClass==='yellow')cards[pid].y++;if(inc.incidentClass==='red')cards[pid].r++;if(inc.incidentClass==='yellowRed'){cards[pid].y++;cards[pid].r++;}}});
+  const og={};incs.forEach(inc=>{if(inc.incidentType==='goal'&&inc.incidentClass==='ownGoal'&&inc.player?.id)og[inc.player.id]=(og[inc.player.id]||0)+1;});
+  const all=[...(lineups.home?.players||[]).map(p=>({...p,side:'home'})),...(lineups.away?.players||[]).map(p=>({...p,side:'away'}))];
+  const scores=[];
+  for(const e of all){
+    const pl=e.player,stats=e.statistics;
+    if(!pl?.id||!stats||stats.minutesPlayed===undefined)continue;
+    const dbPl=fPlayers.find(p=>p.sofascore_player_id===pl.id);if(!dbPl)continue;
+    const min=stats.minutesPlayed||0,goals=stats.goals||0,assists=stats.goalAssist||0,saves=stats.saves||0;
+    const yc=cards[pl.id]?.y||0,rc=cards[pl.id]?.r||0,ownG=og[pl.id]||0;
+    const rivalScore=e.side==='home'?awayScore:homeScore;
+    const cleanSheet=rivalScore===0&&min>=90;
+    scores.push({player_id:dbPl.id,match_id:match.id,sofascore_rating:stats.rating||null,minutes_played:min,goals,assists,yellow_cards:yc,red_cards:rc,saves,clean_sheet:cleanSheet,own_goals:ownG,points_base:fCalcPts(dbPl.position,{min,goals,assists,saves,yc,rc,ownG,cleanSheet})});
+  }
+  fSyncLog(`  Jugadores: ${scores.length}`);
+  for(let i=0;i<scores.length;i+=50)await dbq(c=>c.from('fantasy_player_scores').upsert(scores.slice(i,i+50),{onConflict:'player_id,match_id'}),true);
+  await dbq(c=>c.from('fantasy_matches').update({status:'synced',home_score:homeScore,away_score:awayScore}).eq('id',match.id),true);
+  return true;
+}
+
+function fCalcPts(pos,s){
+  let pts=0;
+  if(s.min>=60)pts+=2;else if(s.min>0)pts+=1;
+  if(s.goals>0)pts+=s.goals*({GK:8,DEF:7,MID:6,FWD:4}[pos]||4);
+  if(s.assists>0)pts+=s.assists*({GK:4,DEF:4,MID:4,FWD:3}[pos]||3);
+  if(s.cleanSheet)pts+=({GK:5,DEF:3,MID:1,FWD:0}[pos]||0);
+  if(pos==='GK'&&s.saves>0)pts+=Math.floor(s.saves/3);
+  pts-=s.yc*1;pts-=s.rc*3;pts-=s.ownG*3;
+  return Math.max(pts,0);
+}
+
+async function fRecalcPoints(){await dbq(c=>c.rpc('recalculate_fantasy_points',{p_season_id:F_SEASON_ID}),true);}
+async function fLockTeams(){if(!confirm('¿Cerrar todos los equipos fantasy?'))return;await dbq(c=>c.rpc('lock_fantasy_teams',{p_season_id:F_SEASON_ID}),true);alert('✅ Equipos cerrados.');}
+async function fSsGet(path){try{const r=await fetch(F_SS_BASE+path);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
+
+// Cerrar picker al pulsar fuera
+document.getElementById('fpicker-overlay')?.addEventListener('click',e=>{if(e.target===document.getElementById('fpicker-overlay'))fClosePicker();});
+
+// Pre-cargar jugadores en background
+setTimeout(()=>{if(fPlayers.length===0)fLoadPlayers();},4000);
+
 </script>
+<div class="page" id="page-fantasy">
+  <div class="hero"><h1>⚽ FANTASY MUNDIAL 2026</h1><p>Elige tu 11, acumula puntos con cada partido y compite contra todos</p></div>
+  <div style="display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap">
+    <button class="stab active" id="ftab-myteam" onclick="fantasyTab('myteam',this)">Mi Equipo</button>
+    <button class="stab" id="ftab-ranking" onclick="fantasyTab('ranking',this)">Clasificación</button>
+    <button class="stab" id="ftab-normas" onclick="fantasyTab('normas',this)">Normas</button>
+  </div>
+  <div id="fsec-myteam"><div id="fantasy-team-container"><div style="text-align:center;padding:3rem;color:var(--muted)"><div class="spin"></div></div></div></div>
+  <div id="fsec-ranking" style="display:none"><div class="card"><div class="card-title">🏆 Clasificación Fantasy</div><div id="fantasy-ranking-container"><div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div></div></div></div>
+  <div id="fsec-normas" style="display:none">
+    <div class="card">
+      <div class="card-title">📜 Normas del Fantasy</div>
+      <div style="line-height:1.8;font-size:.88rem">
+        <p style="margin-bottom:.75rem"><strong style="color:var(--gold)">¿Cómo funciona?</strong><br>Elige un equipo de 11 jugadores del Mundial antes del inicio del torneo. A lo largo de la competición, tus jugadores acumulan puntos según su rendimiento real. Gana quien más puntos acumule al final del Mundial.</p>
+        <p style="margin-bottom:.75rem"><strong style="color:var(--gold)">Formación</strong><br>1 portero obligatorio · 4–5 defensas · 3–5 centrocampistas · 2–3 delanteros · Total siempre 11.</p>
+        <p style="margin-bottom:.75rem"><strong style="color:var(--gold)">Restricciones</strong><br>Máximo 3 jugadores de la misma selección. Un capitán que dobla sus puntos.</p>
+        <p style="margin-bottom:.75rem"><strong style="color:var(--gold)">Selecciones eliminadas</strong><br>Cuando una selección queda eliminada, sus jugadores dejan de sumar puntos. Los puntos ya acumulados se conservan.</p>
+        <p style="margin-bottom:.75rem"><strong style="color:var(--gold)">Cierre</strong><br>El equipo se cierra 2 horas antes del primer partido (11 jun 2026, 22:00h España).</p>
+        <div style="background:var(--surf2);border-radius:8px;padding:.85rem;border:1px solid var(--border)">
+          <div style="font-size:.78rem;color:var(--gold);font-weight:700;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.5px">Puntuación</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.28rem;font-size:.8rem">
+            <div>Jugar 60+ min → <strong style="color:var(--green)">+2 pts</strong></div>
+            <div>Suplente → <strong style="color:var(--green)">+1 pt</strong></div>
+            <div>Gol portero → <strong style="color:var(--green)">+8 pts</strong></div>
+            <div>Gol defensa → <strong style="color:var(--green)">+7 pts</strong></div>
+            <div>Gol centrocampista → <strong style="color:var(--green)">+6 pts</strong></div>
+            <div>Gol delantero → <strong style="color:var(--green)">+4 pts</strong></div>
+            <div>Asistencia → <strong style="color:var(--green)">+3–4 pts</strong></div>
+            <div>P. a cero (portero) → <strong style="color:var(--green)">+5 pts</strong></div>
+            <div>P. a cero (defensa) → <strong style="color:var(--green)">+3 pts</strong></div>
+            <div>3 paradas portero → <strong style="color:var(--green)">+1 pt</strong></div>
+            <div>Tarjeta amarilla → <strong style="color:var(--accent)">-1 pt</strong></div>
+            <div>Tarjeta roja → <strong style="color:var(--accent)">-3 pts</strong></div>
+            <div>Gol en propia → <strong style="color:var(--accent)">-3 pts</strong></div>
+            <div>Capitán → <strong style="color:var(--gold)">×2 puntos</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PICKER FANTASY -->
+<div class="fpicker-overlay" id="fpicker-overlay">
+  <div class="fpicker-box">
+    <div class="fpicker-header">
+      <div><div class="fpicker-title" id="fpicker-title">Elige jugador</div><div class="fpicker-sub" id="fpicker-sub"></div></div>
+      <button class="btn btn-ghost" onclick="fClosePicker()" style="padding:.3rem .6rem;font-size:.85rem">✕</button>
+    </div>
+    <div id="fpicker-pos-note" style="display:none;font-size:.72rem;color:var(--gold);background:rgba(244,162,97,.08);border:1px solid rgba(244,162,97,.2);border-radius:6px;padding:.4rem .65rem;margin-bottom:.6rem"></div>
+    <div class="fpicker-filters" id="fpicker-filters"></div>
+    <input class="fplayer-search" id="fpicker-search" placeholder="Buscar por nombre o selección..." oninput="fRenderPicker()">
+    <div class="fplayers-grid" id="fpicker-grid"></div>
+  </div>
+</div>
+
 <!-- SESSION BANNER -->
 <div id="session-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0d1525;border-top:1px solid var(--border);padding:.55rem 1.2rem;font-size:.75rem;color:var(--muted);z-index:300;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
   <span>🔒 Esta web usa almacenamiento local solo para gestionar tu sesión. No hay cookies de seguimiento ni publicidad.</span>
