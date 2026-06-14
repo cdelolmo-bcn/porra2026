@@ -2369,8 +2369,21 @@ async function loadStats(){
   const campCount={},espCount={},golCount={},jugCount={};
   const normPlayer=(name,pool)=>{
     if(!name)return null;
-    const match=pool.find(j=>playerMatch(j.nom,name));
-    return match?match.nom:name;
+    const np=normStr(name);
+    // 1. Coincidencia exacta
+    let m=pool.find(j=>normStr(j.nom)===np);
+    if(m)return m.nom;
+    // 2. Inclusión: "Oyarzabal" -> "Mikel Oyarzabal"
+    m=pool.find(j=>{const n=normStr(j.nom);return n&&(n.includes(np)||np.includes(n));});
+    if(m)return m.nom;
+    // 3. Coincidencia por APELLIDO (última palabra >=4 chars), nunca solo por nombre de pila
+    const wp=np.split(/\s+/).filter(w=>w.length>=4);
+    const last=wp[wp.length-1];
+    if(last){
+      m=pool.find(j=>{const wb=normStr(j.nom).split(/\s+/).filter(w=>w.length>=4);return wb.length&&wb[wb.length-1]===last;});
+      if(m)return m.nom;
+    }
+    return name; // sin resolver: se agrupa por el texto tal cual
   };
 
   data.forEach(p=>{
