@@ -335,7 +335,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.5.2</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.5.3</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -3960,7 +3960,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.5.2</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.5.3</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
@@ -4908,15 +4908,57 @@ async function fLoadRanking(){
       }).join('');
     return;
   }
+  window._fRankTeams={};
   c.innerHTML=data.map((t,i)=>{
     const pos=i+1;const pc=pos<=3?` g${pos}`:'';const me=currentUser&&t.user_id===currentUser.id;
     const name=nm[t.user_id]||'Anónimo';
-    return `<div class="frank-row${me?' frank-me':''}">
+    window._fRankTeams[t.id]={name,formation:t.formation,total_points:t.total_points||0};
+    return `<div class="frank-row${me?' frank-me':''}" style="cursor:pointer" onclick="fShowTeamModal('${t.id}')" title="Ver equipo">
       <div class="frank-pos${pc}">${pos}</div>
       <div><div style="font-weight:500">${esc(name)}</div><div style="font-size:.7rem;color:var(--muted)">${t.formation}</div></div>
       <div class="frank-pts">${t.total_points||0} pts</div>
     </div>`;
   }).join('');
+}
+
+// ── Modal: equipo fantasy de un participante ──
+async function fShowTeamModal(teamId){
+  const meta=(window._fRankTeams||{})[teamId]||{};
+  const titleEl=document.getElementById('detail-title');
+  const contentEl=document.getElementById('detail-content');
+  const modal=document.getElementById('detail-modal');
+  titleEl.textContent='⚽ '+(meta.name||'Equipo');
+  contentEl.innerHTML='<div style="text-align:center;padding:2rem"><div class="spin"></div></div>';
+  modal.style.display='flex';
+  const{data:tps}=await dbq(c=>c.from('fantasy_team_players')
+    .select('*,fantasy_players(*)').eq('fantasy_team_id',teamId));
+  if(!tps||!tps.length){contentEl.innerHTML='<div style="color:var(--muted);padding:1.5rem;text-align:center">No se pudo cargar el equipo.</div>';return;}
+  const pids=tps.map(tp=>tp.player_id);
+  const scoreMap={};
+  if(pids.length){
+    const{data:scores}=await dbq(c=>c.from('fantasy_player_scores').select('player_id,points_base').in('player_id',pids));
+    scores?.forEach(s=>{scoreMap[s.player_id]=(scoreMap[s.player_id]||0)+s.points_base;});
+  }
+  const byPos={GK:[],DEF:[],MID:[],FWD:[]};
+  tps.forEach(tp=>{const pos=tp.fantasy_players?.position;if(byPos[pos])byPos[pos].push(tp);});
+  let h=`<div style="font-size:.78rem;color:var(--muted);margin-bottom:.85rem">Formación: <strong style="color:var(--gold)">${esc(meta.formation||'')}</strong> · <strong style="color:var(--gold)">${meta.total_points||0}</strong> pts</div>`;
+  ['GK','DEF','MID','FWD'].forEach(pos=>{
+    if(!byPos[pos].length)return;
+    const lbl={GK:'Portero',DEF:'Defensas',MID:'Centrocampistas',FWD:'Delanteros'}[pos];
+    h+=`<div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:.5rem 0 .25rem">${lbl}</div>`;
+    byPos[pos].forEach(tp=>{
+      const pl=tp.fantasy_players;const pts=scoreMap[tp.player_id]||0;
+      const capPts=tp.is_captain?pts*2:pts;const inactive=pl&&!pl.active;
+      h+=`<div class="mytp-row${inactive?' mytp-inactive':''}">
+        <span class="mytp-pos fpos-${pos}" style="${F_POS_COLORS[pos]}">${pos}</span>
+        <span class="mytp-name">${esc(pl?.name||'—')}${inactive?' <span style="font-size:.65rem;color:var(--muted)">(eliminado)</span>':''}</span>
+        <span class="mytp-team">${esc(pl?.team_name||'')}</span>
+        ${tp.is_captain?'<span class="mytp-cap">C</span>':''}
+        <span class="mytp-pts">${capPts} pts</span>
+      </div>`;
+    });
+  });
+  contentEl.innerHTML=h;
 }
 
 // ── Admin: panel fantasy ──
