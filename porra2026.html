@@ -335,7 +335,7 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
 
 <header>
   <div class="header-top">
-    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.5.3</span></div>
+    <div class="logo">⚽ <span>PORRA</span> 2026<span style="font-size:.5rem;color:var(--muted);font-family:inherit;font-weight:400;margin-left:.4rem;opacity:.6">v1.5.4</span></div>
     <div class="header-right">
       <div id="user-nav" style="display:none;position:relative;overflow:visible">
         <button class="user-badge" onclick="showUserMenu()" id="user-badge-btn">
@@ -3117,16 +3117,30 @@ function calcScore(porra,real){
     slot:'sf_'+(i+1), h:pW('qf_'+a), a:pW('qf_'+b)
   }));
 
-  // ── R32 (max 32pts): 1pt por cada equipo acertado en slot correcto ──
+  // ── R32 (max 32pts): 1pt por cada equipo acertado en el cruce correcto ──
+  // Los equipos de cada cruce de R32 NO se derivan de un "ganador" previo (no hay ronda
+  // anterior dentro de la porra): se derivan de los grupos predichos por el participante.
+  // Reconstruimos h/a de cada cruce igual que hace renderBracketReadOnly(), usando
+  // r32_slots si está disponible (import Excel) o calculándolo desde grupos.
+  let pR32Map={};
+  if(porra.r32_slots&&Object.keys(porra.r32_slots).length>0){
+    pR32Map=porra.r32_slots;
+  } else {
+    try{
+      if(porra.grupos&&Object.keys(porra.grupos).length>0){
+        const st=calcStandings(Object.fromEntries(Object.entries(porra.grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
+        const btRes=getBT(st);
+        const r32=bR32(st,btRes.map);
+        r32.forEach((tie,i)=>{pR32Map['r32_'+(i+1)]={h:tie.h,a:tie.a};});
+      }
+    }catch(e){}
+  }
   for(let i=1;i<=16;i++){
     const slot='r32_'+i;
-    const ph=pW('r32_'+(2*i-1)); // NOT applicable — porra r32 slots ARE the teams
-    // The porra r32_i stores the WINNER of that match (1 team)
-    // The real r32_i stores h and a (2 teams) + w (winner)
-    // We compare: does the porra's predicted winner match real h? or real a?
-    const pw=pW(slot);
-    if(pw!=null&&rH(slot)!=null&&pw===rH(slot))pts+=1;
-    if(pw!=null&&rA(slot)!=null&&pw===rA(slot))pts+=1;
+    const pSlot=pR32Map[slot]||{};
+    const hTeam=pSlot.h??null, aTeam=pSlot.a??null;
+    if(hTeam!=null&&rH(slot)!=null&&hTeam===rH(slot))pts+=1;
+    if(aTeam!=null&&rA(slot)!=null&&aTeam===rA(slot))pts+=1;
   }
 
   // ── Octavos (max 16pts): 1pt por cada equipo acertado en slot correcto ──
@@ -3960,7 +3974,7 @@ function renderNormas(){
     '<a href="'+whatsapp+'" target="_blank" style="display:inline-flex;align-items:center;gap:.5rem;background:#25D366;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">💬 '+tr('n_wa_btn')+'</a>'
   );
 
-  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.5.3</div>';
+  h+='<div style="text-align:center;padding:.75rem 0 .25rem;font-size:.72rem;color:var(--surf3);opacity:.5">v1.5.4</div>';
   nc.innerHTML=h;
 }
 // ══ HISTORIAL RANKING ══
