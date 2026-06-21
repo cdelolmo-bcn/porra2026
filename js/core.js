@@ -32,7 +32,6 @@ function waitAndLoad(attempts){
 }
 
 async function _anonQ(table, select, filters, order, limit, single=false){
-  console.log('[ANONQ]', table, select, filters, 'limit:', limit, 'single:', single);
   let url=`${SB_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}`;
   Object.entries(filters).forEach(([k,v])=>{url+=`&${k}=eq.${encodeURIComponent(v)}`;});
   if(order)url+=`&order=${order.col}.${order.asc?'asc':'desc'}`;
@@ -81,7 +80,6 @@ function initSupabase(){
     setTimeout(initSupabase,250);return;
   }
   _sbInitialized=true;
-  console.log('[INIT] Creating Supabase client');
   try{
     // ── Punto único de creación del cliente ──
     sb=window.supabase.createClient(SB_URL,SB_KEY,{
@@ -93,17 +91,14 @@ function initSupabase(){
         storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}}
     });
     window._sbReady=true;
-    console.log('[INIT] sb created, _sbAnon ready');
     // ── Escuchador global de sesión ──
     // No usamos lock — cada evento se procesa independientemente.
     // onAuthChange es idempotente (solo actualiza UI), no hay riesgo de carrera real.
     sb.auth.onAuthStateChange(async(event,session)=>{
-      console.log('[AUTH] event:', event, 'user:', session?.user?.email||null, 'currentUser:', currentUser?.email||null, 'time:', new Date().toISOString());
       const user=session?.user||null;
-      if(event==='TOKEN_REFRESHED'){console.log('[AUTH] TOKEN_REFRESHED — reloading active page data');const ap=document.querySelector('.page.active');if(ap){const pid=ap.id.replace('page-','');if(pid==='ranking')loadRanking();if(pid==='muro')cargarMuro();}}
+      if(event==='TOKEN_REFRESHED'){const ap=document.querySelector('.page.active');if(ap){const pid=ap.id.replace('page-','');if(pid==='ranking')loadRanking();if(pid==='muro')cargarMuro();}}
       if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
         currentUser=user;
-        console.log('[AUTH] processing', event, '— calling onAuthChange');
         if(window.location.hash.includes('access_token'))
           history.replaceState(null,'',window.location.pathname);
         await onAuthChange(currentUser);
@@ -119,15 +114,12 @@ function initSupabase(){
     // Si hay access_token en el hash (OAuth redirect), el SDK necesita tiempo para procesarlo
     // Esperamos al evento SIGNED_IN con un fallback de getSession cada segundo
     if(window.location.hash.includes('access_token')){
-      console.log('[AUTH] OAuth redirect detected — waiting for SIGNED_IN');
       // Poll getSession hasta que tengamos usuario o pasen 10s
       let _oauthTries=0;
       const _oauthPoll=setInterval(async()=>{
         _oauthTries++;
         const{data:{session}}=await sb.auth.getSession();
-        console.log('[AUTH] OAuth poll',_oauthTries,'session:',session?.user?.email||'null');
         if(session?.user){
-          console.log('[AUTH] OAuth poll found session — clearing interval');
           clearInterval(_oauthPoll);
           if(!currentUser){currentUser=session.user;await onAuthChange(currentUser);}
         } else if(_oauthTries>=10){
@@ -137,7 +129,6 @@ function initSupabase(){
       },1000);
     } else {
       sb.auth.getSession().then(async({data:{session}})=>{
-        console.log('[AUTH] getSession result:', session?.user?.email||'no session');
         if(session?.user&&!currentUser){
           currentUser=session.user;
           await onAuthChange(currentUser);
@@ -150,12 +141,10 @@ function initSupabase(){
       if(document.visibilityState!=='visible'){_lastVisible=Date.now();return;}
       if(!currentUser)return;
       const away=Date.now()-_lastVisible;
-      console.log('[AUTH] tab visible after',Math.round(away/1000),'s, currentUser:', currentUser?.email||null, 'time:', new Date().toISOString());
       // If away less than 55 minutes, session should still be valid
       // Only reload data if away more than 2 minutes to avoid blocking sb during token refresh
       if(away<55*60*1000){
         if(away>2*60*1000){
-          console.log('[AUTH] reloading data after 2min+ absence');
           const ap=document.querySelector('.page.active');
           if(ap){
             const pid=ap.id.replace('page-','');
@@ -166,7 +155,6 @@ function initSupabase(){
         return;
       }
       // Away more than 55 min — token may have expired, try to refresh
-      console.log('[AUTH] LONG absence (>55min) — attempting token refresh');
       const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
       try{
         const{data:{session}}=await Promise.race([sb.auth.getSession(),timeout]);
@@ -199,7 +187,6 @@ function initSupabase(){
 // Always use this for Supabase queries. Picks anon client for reads,
 // auth client for writes. Times out after 10s instead of hanging forever.
 async function dbq(queryFn, requiresAuth=false){
-  console.log('[DBQ] requiresAuth:', requiresAuth, 'currentUser:', !!currentUser, 'time:', new Date().toISOString());
   const client = requiresAuth ? sb : (window._sbAnon||sb);
   return new Promise((resolve)=>{
     const timer = setTimeout(()=>{
@@ -208,7 +195,6 @@ async function dbq(queryFn, requiresAuth=false){
     }, 10000);
     queryFn(client).then(result=>{
       clearTimeout(timer);
-      console.log('[DBQ] resolved OK requiresAuth:', requiresAuth);
       resolve(result);
     }).catch(err=>{
       clearTimeout(timer);
@@ -218,15 +204,12 @@ async function dbq(queryFn, requiresAuth=false){
   });
 }
 async function onAuthChange(user){
-  console.log('[AUTH] onAuthChange START — user:', user?.email||null, 'isAdmin:', isAdmin, 'activePage:', document.querySelector('.page.active')?.id||null);
   isAdmin=false;
   if(user){
     // Check admin role
     try{
-      console.log('[AUTH] checking admin for user:', user.id);
       const{data,error}=await dbq(c=>c.from('admins').select('user_id').eq('user_id',user.id).maybeSingle(),true);
       isAdmin=!error&&!!data;
-      console.log('[AUTH] isAdmin:', isAdmin, 'error:', error?.message||null);
     }catch(e){console.error('[AUTH] admin check threw:',e.message);isAdmin=false;}
     // Update UI
     const nav=document.getElementById('user-nav');
@@ -248,11 +231,9 @@ async function onAuthChange(user){
     // Reload current page if it's porras
     const activePage=document.querySelector('.page.active');
     if(activePage?.id==='page-porras')loadAllMyBets();
-    console.log('[AUTH] onAuthChange END (logged in)');
   }else{
     // Not logged in
     const nav=document.getElementById('user-nav');
-    console.log('[AUTH] onAuthChange END (logged out)');
     const loginBtn=document.getElementById('btn-login-nav');
     if(nav)nav.style.display='none';
     if(loginBtn)loginBtn.style.display='';

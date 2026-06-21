@@ -138,9 +138,7 @@ function renderBracketReadOnly(ko, realKo, grupos, r32Slots){
 }
 
 async function viewBetDetail(nombre){
-  console.log('[DETAIL] viewBetDetail called with:', nombre);
   const{data,error}=await dbq(c=>(window._sbAnon||sb).from('porras').select('nombre,puntos,paid,updated_at,data,user_id,logros').eq('nombre',nombre).limit(1).maybeSingle());
-  console.log('[DETAIL] result:', data?.nombre||null, 'error:', error?.message||null);
   // data/error already set by dbq above
   if(error){console.error('viewBetDetail error:',error.message);showMsg('porra-msg','Error al cargar la porra: '+error.message,'err');return;}
   if(!data){showMsg('porra-msg','No se encontró la porra.','err');return;}
@@ -243,9 +241,7 @@ async function loadAllMyBets(){
   if(!mc||!sb)return;
   if(!currentUser){mc.innerHTML='<div class="alert ainfo">Inicia sesión para ver tus porras.</div>';return;}
   mc.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div>';
-  console.log('[MYBET] loading for user:', currentUser?.id);
   const{data,error}=await dbq(c=>c.from('porras').select('nombre,puntos,paid,updated_at,data').eq('user_id',currentUser.id).order('updated_at',{ascending:false}), true);
-  console.log('[MYBET] result:', data?.length, 'rows, error:', error?.message||null);
   if(error){mc.innerHTML='<div class="alert aerr">'+error.message+'</div>';return;}
   if(!data?.length){
     mc.innerHTML='<div class="alert ainfo" style="text-align:center">'+t('no_bets')+'<br><br><button class="btn btn-success" onclick="goNewBet()">'+t('new_bet')+'</button></div>';

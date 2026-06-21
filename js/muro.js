@@ -11,7 +11,6 @@ function initMuro(){
 }
 async function cargarMuro(){
   const c=document.getElementById('muro-container');if(!c)return;
-  console.log('[MURO] loading, _sbAnon:', !!window._sbAnon);
   const{data,error}=await dbq(c=>(window._sbAnon||sb).from('muro_mensajes').select('user_id,nombre,mensaje,created_at').order('created_at',{ascending:true}).limit(80));
   if(error){
     // If RLS error (not authenticated), show empty state not error

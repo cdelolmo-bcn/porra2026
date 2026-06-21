@@ -64,16 +64,13 @@ async function deleteAccount(){
 }
 
 async function logout(){
-  console.log('[AUTH] logout called, sb state check...');
   closeUserMenu();
   currentUser=null;
   isAdmin=false;
   // Try signOut with timeout — if sb is blocked, clear session manually
-  console.log('[AUTH] calling sb.auth.signOut()...');
   const signOutPromise=sb.auth.signOut().catch((e)=>{console.warn('[AUTH] signOut error:',e.message);});
   const timeout=new Promise(r=>setTimeout(r,3000));
   await Promise.race([signOutPromise,timeout]);
-  console.log('[AUTH] clearing localStorage keys...');
   // Clear Supabase session from localStorage regardless
   Object.keys(localStorage).filter(k=>k.startsWith('sb-')||k.includes('supabase')).forEach(k=>localStorage.removeItem(k));
   await onAuthChange(null);

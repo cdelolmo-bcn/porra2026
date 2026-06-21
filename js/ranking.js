@@ -11,7 +11,6 @@ async function loadRanking(){
   // Unlock nav immediately so user isn't stuck
   document.querySelectorAll('.nav-btn').forEach(b=>b.style.pointerEvents='');
   const preDeadline=!deadlinePassed();
-  console.log('[RANKING] starting query, _sbAnon:', !!window._sbAnon, 'sb:', !!sb);
   let query=(window._sbAnon||sb).from('porras').select('nombre,puntos,paid,updated_at,logros');
   if(!preDeadline)query=query.eq('paid',true);
   // Timeout after 8 seconds
@@ -24,7 +23,6 @@ async function loadRanking(){
     query.order('puntos',{ascending:false}),
     (window._sbAnon||sb).from('historial_ranking').select('nombre,posicion').eq('fecha',new Date(Date.now()-86400000).toISOString().slice(0,10))
   ]);
-  console.log('[RANKING] result:', data?.length, 'rows, error:', error?.message||null);
   if(timedOut)return;
   clearTimeout(timeout);
   // Build prev position map
