@@ -1,0 +1,12 @@
+{
+  "name": "porra2026-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tests de la lógica pura (grupos, bracket, puntuación) de porra2026",
+  "scripts": {
+    "test": "node --test tests/logic.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}
