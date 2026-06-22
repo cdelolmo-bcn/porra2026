@@ -113,7 +113,7 @@ function fRenderMyTeamView(team,tps,scoreMap){
     byPos[pos].forEach(tp=>{
       const pl=tp.fantasy_players;const sm=scoreMap[tp.player_id]||{pts:0,matches:0};
       const pts=sm.pts;const capPts=tp.is_captain?pts*2:pts;const inactive=pl&&!pl.active;
-      h+=`<div class="mytp-row${inactive?' mytp-inactive':''}">
+      h+=`<div class="mytp-row${inactive?' mytp-inactive':''}" style="cursor:pointer" onclick="fShowPlayerModal('${tp.player_id}')">
         <span class="mytp-pos fpos-${pos}" style="${F_POS_COLORS[pos]}">${pos}</span>
         ${pl?.sofascore_player_id?`<img src="https://img.sofascore.com/api/v1/player/${pl.sofascore_player_id}/image" alt="" width="26" height="26" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surf3)" onerror="this.style.display='none'">`:'' }
         <span class="mytp-name">${pl?.name||'—'}${inactive?' <span style="font-size:.65rem;color:var(--muted)">(eliminado)</span>':''}</span>
@@ -510,30 +510,33 @@ async function fShowPlayerModal(playerId){
   const titleEl=document.getElementById('detail-title');
   const contentEl=document.getElementById('detail-content');
   const modal=document.getElementById('detail-modal');
+  await fLoadPlayers();
   const pl=fPlayers.find(p=>p.id===playerId);
   if(!pl)return;
 
   const posColors={GK:{bg:'rgba(245,158,11,.15)',text:'var(--gold)'},DEF:{bg:'rgba(147,197,253,.15)',text:'#93c5fd'},MID:{bg:'rgba(134,239,172,.15)',text:'#86efac'},FWD:{bg:'rgba(196,181,253,.15)',text:'#c4b5fd'}};
   const pc=posColors[pl.position]||{bg:'var(--surf2)',text:'var(--muted)'};
 
-  titleEl.innerHTML=`<div style="display:flex;align-items:center;gap:.85rem;width:100%">
-    <div style="position:relative;flex-shrink:0">
-      ${pl.sofascore_player_id
-        ?`<img src="https://img.sofascore.com/api/v1/player/${pl.sofascore_player_id}/image" alt="" width="56" height="56" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;background:var(--surf2);display:block" onerror="this.replaceWith(document.createRange().createContextualFragment('<div style=\"width:56px;height:56px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--muted)\">?</div>'))">`
-        :`<div style="width:56px;height:56px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--muted)">?</div>`}
-      <span style="position:absolute;bottom:-2px;right:-4px;background:${pc.bg};color:${pc.text};font-size:.62rem;font-weight:700;padding:2px 6px;border-radius:20px;border:1px solid ${pc.text}22">${pl.position}</span>
+  titleEl.innerHTML='';
+  contentEl.innerHTML=`
+    <div style="display:flex;align-items:center;gap:.85rem;padding-bottom:1rem;margin-bottom:1rem;border-bottom:1px solid var(--border)">
+      <div style="position:relative;flex-shrink:0">
+        <img src="https://img.sofascore.com/api/v1/player/${pl.sofascore_player_id||0}/image" alt=""
+          width="56" height="56" referrerpolicy="no-referrer"
+          style="border-radius:50%;object-fit:cover;background:var(--surf2);display:block"
+          onerror="this.style.display='none'">
+        <span style="position:absolute;bottom:-2px;right:-4px;background:${pc.bg};color:${pc.text};font-size:.62rem;font-weight:700;padding:2px 6px;border-radius:20px">${pl.position}</span>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.95rem;font-weight:600;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(pl.short_name||pl.name)}</div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${esc(pl.team_name)}${!pl.active?' &middot; <span style="color:#ef4444">eliminado</span>':''}</div>
+      </div>
+      <div id="fpm-total-pts" style="text-align:right;flex-shrink:0">
+        <div style="font-size:1.5rem;font-weight:700;color:var(--gold);line-height:1">—</div>
+        <div style="font-size:.62rem;color:var(--muted)">pts totales</div>
+      </div>
     </div>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:1rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(pl.short_name||pl.name)}</div>
-      <div style="font-size:.75rem;color:var(--muted);font-weight:400;margin-top:2px">${esc(pl.team_name)}${!pl.active?' · <span style="color:#ef4444">eliminado</span>':''}</div>
-    </div>
-    <div id="fpm-total-pts" style="text-align:right;flex-shrink:0">
-      <div style="font-size:1.6rem;font-weight:700;color:var(--gold);line-height:1">—</div>
-      <div style="font-size:.62rem;color:var(--muted)">pts totales</div>
-    </div>
-  </div>`;
-
-  contentEl.innerHTML='<div style="text-align:center;padding:2rem"><div class="spin"></div></div>';
+    <div style="text-align:center;padding:2rem"><div class="spin"></div></div>`;
   modal.style.display='flex';
 
   const{data,error}=await dbq(c=>c
@@ -553,10 +556,6 @@ async function fShowPlayerModal(playerId){
   const totalAssists=data.reduce((s,r)=>s+r.assists,0);
   const totalSaves=data.reduce((s,r)=>s+(r.saves||0),0);
   const isGK=pl.position==='GK';
-
-  // Actualizar pts en cabecera
-  const ptEl=document.getElementById('fpm-total-pts');
-  if(ptEl)ptEl.innerHTML=`<div style="font-size:1.6rem;font-weight:700;color:var(--gold);line-height:1">${totalPts}</div><div style="font-size:.62rem;color:var(--muted)">pts totales</div>`;
 
   // Stats bar
   const statCols=isGK
@@ -615,8 +614,12 @@ async function fShowPlayerModal(playerId){
     </div>`;
   }).join('');
 
-  contentEl.innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(${statCols.length},minmax(0,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1rem">
+  // Actualizar pts en cabecera y reemplazar spinner con contenido
+  const ptEl=document.getElementById('fpm-total-pts');
+  if(ptEl)ptEl.innerHTML=`<div style="font-size:1.5rem;font-weight:700;color:var(--gold);line-height:1">${totalPts}</div><div style="font-size:.62rem;color:var(--muted)">pts totales</div>`;
+
+  const spinnerEl=contentEl.querySelector('div[style*="text-align:center"]');
+  const bodyHTML=`<div style="display:grid;grid-template-columns:repeat(${statCols.length},minmax(0,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1rem">
       ${statCols.map(([lbl,val,color],i)=>`
         <div style="padding:.6rem .4rem;text-align:center${i>0?';border-left:1px solid var(--border)':''}">
           <div style="font-size:1.1rem;font-weight:700;color:${color}">${val}</div>
@@ -629,6 +632,7 @@ async function fShowPlayerModal(playerId){
     </div>
     <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Partidos</div>
     ${matchCards}`;
+  if(spinnerEl){spinnerEl.outerHTML=bodyHTML;}else{contentEl.innerHTML+=bodyHTML;}
 }
 
 // ── Modal: equipo fantasy de un participante ──
@@ -663,7 +667,7 @@ async function fShowTeamModal(teamId){
     byPos[pos].forEach(tp=>{
       const pl=tp.fantasy_players;const sm=scoreMap[tp.player_id]||{pts:0,matches:0};
       const pts=sm.pts;const capPts=tp.is_captain?pts*2:pts;const inactive=pl&&!pl.active;
-      h+=`<div class="mytp-row${inactive?' mytp-inactive':''}">
+      h+=`<div class="mytp-row${inactive?' mytp-inactive':''}" style="cursor:pointer" onclick="fShowPlayerModal('${tp.player_id}')">
         <span class="mytp-pos fpos-${pos}" style="${F_POS_COLORS[pos]}">${pos}</span>
         ${pl?.sofascore_player_id?`<img src="https://img.sofascore.com/api/v1/player/${pl.sofascore_player_id}/image" alt="" width="26" height="26" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surf3)" onerror="this.style.display='none'">`:'' }
         <span class="mytp-name">${esc(pl?.name||'—')}${inactive?' <span style="font-size:.65rem;color:var(--muted)">(eliminado)</span>':''}</span>
