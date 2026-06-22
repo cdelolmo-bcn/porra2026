@@ -22,12 +22,13 @@ let fFormation='4-3-3',fEditMode=false;
 function fantasyTab(sec,btn){
   document.querySelectorAll('#page-fantasy .stab').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  ['myteam','ranking','normas'].forEach(s=>{
+  ['myteam','ranking','jugadores','normas'].forEach(s=>{
     const el=document.getElementById('fsec-'+s);
     if(el)el.style.display=s===sec?'':'none';
   });
   if(sec==='myteam')fLoadMyTeam();
   if(sec==='ranking')fLoadRanking();
+  if(sec==='jugadores')fLoadPlayersRanking();
 }
 
 
@@ -346,6 +347,60 @@ async function fLoadRanking(){
       <div class="frank-pts">${t.total_points||0} pts</div>
     </div>`;
   }).join('');
+}
+
+// ── Clasificación de Jugadores ──
+async function fLoadPlayersRanking(){
+  const c=document.getElementById('fantasy-players-ranking-container');
+  if(!c)return;
+  c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div>';
+
+  const{data,error}=await dbq(c=>c
+    .from('fantasy_player_scores')
+    .select('player_id,points_base,fantasy_players!inner(name,short_name,position,team_name,country_code,active,season_id)')
+    .eq('fantasy_players.season_id',F_SEASON_ID));
+
+  if(error||!data||!data.length){
+    c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">Aún no hay puntuaciones registradas.</div>';
+    return;
+  }
+
+  const map={};
+  for(const row of data){
+    const pid=row.player_id;
+    const pl=row.fantasy_players;
+    if(!map[pid])map[pid]={name:pl.short_name||pl.name,position:pl.position,team:pl.team_name,active:pl.active,pts:0,matches:0};
+    map[pid].pts+=(row.points_base||0);
+    map[pid].matches++;
+  }
+
+  const players=Object.values(map).sort((a,b)=>b.pts-a.pts);
+  const posColor={GK:'var(--gold)',DEF:'#93c5fd',MID:'#86efac',FWD:'#c4b5fd'};
+
+  c.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.82rem">
+    <thead><tr style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">
+      <th style="padding:.4rem .6rem;text-align:left;border-bottom:1px solid var(--border)">#</th>
+      <th style="padding:.4rem .6rem;text-align:left;border-bottom:1px solid var(--border)">Jugador</th>
+      <th style="padding:.4rem .6rem;text-align:left;border-bottom:1px solid var(--border)">Pos</th>
+      <th style="padding:.4rem .6rem;text-align:left;border-bottom:1px solid var(--border)">Selección</th>
+      <th style="padding:.4rem .6rem;text-align:right;border-bottom:1px solid var(--border)">PJ</th>
+      <th style="padding:.4rem .6rem;text-align:right;border-bottom:1px solid var(--border)">Pts</th>
+    </tr></thead>
+    <tbody>${players.map((p,i)=>`
+      <tr style="${!p.active?'opacity:.45;':''}">
+        <td style="padding:.4rem .6rem;color:var(--muted);border-bottom:1px solid var(--border)">${i+1}</td>
+        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border);font-weight:500">
+          ${esc(p.name)}${!p.active?'<span style="font-size:.62rem;color:#ef4444;margin-left:.3rem">● eliminado</span>':''}
+        </td>
+        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border)">
+          <span style="font-size:.7rem;font-weight:700;color:${posColor[p.position]||'var(--muted)'}">${p.position}</span>
+        </td>
+        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.78rem">${esc(p.team)}</td>
+        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${p.matches}</td>
+        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:${!p.active?'#ef4444':'var(--green)'}">${p.pts}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
 }
 
 // ── Modal: equipo fantasy de un participante ──
