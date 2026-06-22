@@ -180,10 +180,19 @@ window._sbLoaded = false;
   <div style="display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap">
     <button class="stab active" id="ftab-myteam" onclick="fantasyTab('myteam',this)">Mi Equipo</button>
     <button class="stab" id="ftab-ranking" onclick="fantasyTab('ranking',this)">Clasificación</button>
+    <button class="stab" id="ftab-jugadores" onclick="fantasyTab('jugadores',this)">Jugadores</button>
     <button class="stab" id="ftab-normas" onclick="fantasyTab('normas',this)">Normas</button>
   </div>
   <div id="fsec-myteam"><div id="fantasy-team-container"><div style="text-align:center;padding:3rem;color:var(--muted)"><div class="spin"></div></div></div></div>
   <div id="fsec-ranking" style="display:none"><div class="card"><div class="card-title">🏆 Clasificación Fantasy</div><div id="fantasy-ranking-container"><div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div></div></div></div>
+  <div id="fsec-jugadores" style="display:none">
+    <div class="card">
+      <div class="card-title">🌟 Clasificación de Jugadores</div>
+      <div id="fantasy-players-ranking-container">
+        <div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div>
+      </div>
+    </div>
+  </div>
   <div id="fsec-normas" style="display:none">
     <div class="card">
       <div class="card-title">📜 Normas del Fantasy</div>
