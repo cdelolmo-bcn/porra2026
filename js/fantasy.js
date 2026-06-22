@@ -36,20 +36,30 @@ function fantasyTab(sec,btn){
 
 
 // ── Cargar jugadores con paginación ──
+let _fPlayersLoading=false;
 async function fLoadPlayers(){
   if(fPlayers.length>0)return;
-  let all=[],from=0;
-  while(true){
-    const{data,error}=await dbq(c=>c.from('fantasy_players')
-      .select('id,name,short_name,position,country_code,team_name,active,sofascore_player_id')
-      .eq('season_id',F_SEASON_ID).order('team_name').order('name')
-      .range(from,from+999));
-    if(error||!data)break;
-    all=all.concat(data);
-    if(data.length<1000)break;
-    from+=1000;
+  if(_fPlayersLoading){
+    while(_fPlayersLoading)await new Promise(r=>setTimeout(r,100));
+    return;
   }
-  fPlayers=all;
+  _fPlayersLoading=true;
+  try{
+    let all=[],from=0;
+    while(true){
+      const{data,error}=await dbq(c=>c.from('fantasy_players')
+        .select('id,name,short_name,position,country_code,team_name,active,sofascore_player_id')
+        .eq('season_id',F_SEASON_ID).order('team_name').order('name')
+        .range(from,from+999));
+      if(error||!data){console.warn('[Fantasy] Error cargando jugadores:',error?.message);break;}
+      all=all.concat(data);
+      if(data.length<1000)break;
+      from+=1000;
+    }
+    if(all.length>0)fPlayers=all;
+  }finally{
+    _fPlayersLoading=false;
+  }
 }
 
 // ── Mi equipo ──
