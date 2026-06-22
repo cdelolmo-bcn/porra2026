@@ -242,3 +242,15 @@ async function onAuthChange(user){
   }
 }
 
+
+// ── Mensajes de estado ──
+function showMsg(id,msg,type){
+  const el=document.getElementById(id);if(!el)return;
+  const cls=type==='ok'?'aok':type==='err'?'aerr':'ainfo';
+  el.innerHTML='<div class="alert '+cls+'" style="font-weight:600">'+msg+'</div>';
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  if(type==='ok'||type==='info')setTimeout(()=>{if(el)el.innerHTML='';},5000);
+}
+
+
+
