@@ -366,20 +366,37 @@ async function fLoadPlayersRanking(){
 
   c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div>';
 
-  const{data,error}=await dbq(c=>c
-    .from('fantasy_player_scores')
-    .select('player_id,points_base,fantasy_players!inner(name,short_name,position,team_name,active,season_id)')
-    .eq('fantasy_players.season_id',F_SEASON_ID));
+  await fLoadPlayers();
+  if(!fPlayers.length){
+    c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">No hay jugadores cargados.</div>';
+    return;
+  }
 
-  if(error||!data||!data.length){
+  const plMap={};
+  fPlayers.forEach(p=>{plMap[p.id]=p;});
+  const ids=fPlayers.map(p=>p.id);
+
+  // Fetch en bloques de 500 para evitar límites de URL
+  let allScores=[];
+  for(let i=0;i<ids.length;i+=500){
+    const{data:chunk,error}=await dbq(c=>c
+      .from('fantasy_player_scores')
+      .select('player_id,points_base')
+      .in('player_id',ids.slice(i,i+500)));
+    if(error)break;
+    if(chunk)allScores=allScores.concat(chunk);
+  }
+
+  if(!allScores.length){
     c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">Aún no hay puntuaciones registradas.</div>';
     return;
   }
 
   const map={};
-  for(const row of data){
+  for(const row of allScores){
     const pid=row.player_id;
-    const pl=row.fantasy_players;
+    const pl=plMap[pid];
+    if(!pl)continue;
     if(!map[pid])map[pid]={name:pl.short_name||pl.name,position:pl.position,team:pl.team_name,active:pl.active,pts:0,matches:0};
     map[pid].pts+=(row.points_base||0);
     map[pid].matches++;
