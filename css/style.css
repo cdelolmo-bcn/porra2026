@@ -295,5 +295,6 @@ input.invalid,select.invalid{border-color:var(--accent)!important;background:rgb
   .fformation-btn{text-align:center}
   .fteam-summary{gap:.35rem}
   .fts-num{font-size:1.2rem}
+  .fpr-hide-mobile{display:none!important}
 }
 
