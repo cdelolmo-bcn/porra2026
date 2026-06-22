@@ -380,17 +380,20 @@ async function ejecutarSimulacion(){
     const{h,a}=r32Teams(slot);
     rk[slot]={h,a,w:sw(slot)};
   }
-  // Octavos: feeds desde r32
-  Object.entries(SIM_OCT_FEEDS).forEach(([slot,[f1,f2]])=>{
-    rk[slot]={h:sw(f1),a:sw(f2),w:sw(slot)};
+  // Octavos: mismos feeds que calcScore (FIFA bracket real)
+  [[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]].forEach(([a,b],i)=>{
+    const slot='oct_'+(i+1);
+    rk[slot]={h:sw('r32_'+a),a:sw('r32_'+b),w:sw(slot)};
   });
-  // Cuartos: feeds desde oct
-  Object.entries(SIM_QF_FEEDS).forEach(([slot,[f1,f2]])=>{
-    rk[slot]={h:sw(f1),a:sw(f2),w:sw(slot)};
+  // Cuartos: mismos feeds que calcScore
+  [[2,1],[5,6],[3,4],[7,8]].forEach(([a,b],i)=>{
+    const slot='qf_'+(i+1);
+    rk[slot]={h:sw('oct_'+a),a:sw('oct_'+b),w:sw(slot)};
   });
-  // Semis: feeds desde qf
-  Object.entries(SIM_SF_FEEDS).forEach(([slot,[f1,f2]])=>{
-    rk[slot]={h:sw(f1),a:sw(f2),w:sw(slot)};
+  // Semis: mismos feeds que calcScore
+  [[1,2],[3,4]].forEach(([a,b],i)=>{
+    const slot='sf_'+(i+1);
+    rk[slot]={h:sw('qf_'+a),a:sw('qf_'+b),w:sw(slot)};
   });
   // Final
   rk['final_1']={h:sw('sf_1'),a:sw('sf_2'),w:sw('final_1')};
