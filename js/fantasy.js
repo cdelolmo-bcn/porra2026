@@ -70,7 +70,11 @@ async function fLoadMyTeam(){
     if(pids.length>0){
       const{data:scores}=await dbq(c=>c.from('fantasy_player_scores')
         .select('player_id,points_base').in('player_id',pids));
-      scores?.forEach(s=>{scoreMap[s.player_id]=(scoreMap[s.player_id]||0)+s.points_base;});
+      scores?.forEach(s=>{
+        if(!scoreMap[s.player_id])scoreMap[s.player_id]={pts:0,matches:0};
+        scoreMap[s.player_id].pts+=s.points_base;
+        scoreMap[s.player_id].matches++;
+      });
     }
     fRenderMyTeamView(team,tps||[],scoreMap);
   }else{
@@ -97,13 +101,15 @@ function fRenderMyTeamView(team,tps,scoreMap){
     const lbl={GK:'Portero',DEF:'Defensas',MID:'Centrocampistas',FWD:'Delanteros'}[pos];
     h+=`<div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:.5rem 0 .25rem">${lbl}</div>`;
     byPos[pos].forEach(tp=>{
-      const pl=tp.fantasy_players;const pts=scoreMap[tp.player_id]||0;
-      const capPts=tp.is_captain?pts*2:pts;const inactive=pl&&!pl.active;
+      const pl=tp.fantasy_players;const sm=scoreMap[tp.player_id]||{pts:0,matches:0};
+      const pts=sm.pts;const capPts=tp.is_captain?pts*2:pts;const inactive=pl&&!pl.active;
       h+=`<div class="mytp-row${inactive?' mytp-inactive':''}">
         <span class="mytp-pos fpos-${pos}" style="${F_POS_COLORS[pos]}">${pos}</span>
+        ${pl?.sofascore_player_id?`<img src="https://img.sofascore.com/api/v1/player/${pl.sofascore_player_id}/image" alt="" width="26" height="26" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surf3)" onerror="this.style.display='none'">`:'' }
         <span class="mytp-name">${pl?.name||'—'}${inactive?' <span style="font-size:.65rem;color:var(--muted)">(eliminado)</span>':''}</span>
         <span class="mytp-team">${pl?.team_name||''}</span>
         ${tp.is_captain?'<span class="mytp-cap">C</span>':''}
+        ${sm.matches?`<span style="font-size:.68rem;color:var(--muted);flex-shrink:0">${sm.matches}PJ</span>`:''}
         <span class="mytp-pts">${capPts||pts} pts</span>
       </div>`;
     });
@@ -261,6 +267,7 @@ function fRenderPicker(){
     const isPicked=pickedIds.has(p.id);const maxC=!isPicked&&(cc[p.country_code]||0)>=3;
     const cls=isPicked?'fpicked':maxC?'fmaxc':'';const clickable=!isPicked&&!maxC;
     return `<div class="fplayer-card${cls?' '+cls:''}" title="${maxC?'Máx. 3 de '+p.team_name:isPicked?'Ya en tu equipo':p.name}" onclick="${clickable?`fPickPlayer('${p.id}')`:''}" >
+      ${p.sofascore_player_id?`<img src="https://img.sofascore.com/api/v1/player/${p.sofascore_player_id}/image" alt="" width="32" height="32" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surf3)" onerror="this.style.display='none'">`:'' }
       <span class="fpcard-pos" style="${F_POS_COLORS[p.position]||''}">${p.position}</span>
       <div class="fpcard-info"><div class="fpcard-name">${p.short_name||p.name}</div><div class="fpcard-team">${p.team_name}</div></div>
     </div>`;
@@ -504,7 +511,11 @@ async function fShowTeamModal(teamId){
   const scoreMap={};
   if(pids.length){
     const{data:scores}=await dbq(c=>c.from('fantasy_player_scores').select('player_id,points_base').in('player_id',pids));
-    scores?.forEach(s=>{scoreMap[s.player_id]=(scoreMap[s.player_id]||0)+s.points_base;});
+    scores?.forEach(s=>{
+      if(!scoreMap[s.player_id])scoreMap[s.player_id]={pts:0,matches:0};
+      scoreMap[s.player_id].pts+=s.points_base;
+      scoreMap[s.player_id].matches++;
+    });
   }
   const byPos={GK:[],DEF:[],MID:[],FWD:[]};
   tps.forEach(tp=>{const pos=tp.fantasy_players?.position;if(byPos[pos])byPos[pos].push(tp);});
@@ -514,13 +525,15 @@ async function fShowTeamModal(teamId){
     const lbl={GK:'Portero',DEF:'Defensas',MID:'Centrocampistas',FWD:'Delanteros'}[pos];
     h+=`<div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:.5rem 0 .25rem">${lbl}</div>`;
     byPos[pos].forEach(tp=>{
-      const pl=tp.fantasy_players;const pts=scoreMap[tp.player_id]||0;
-      const capPts=tp.is_captain?pts*2:pts;const inactive=pl&&!pl.active;
+      const pl=tp.fantasy_players;const sm=scoreMap[tp.player_id]||{pts:0,matches:0};
+      const pts=sm.pts;const capPts=tp.is_captain?pts*2:pts;const inactive=pl&&!pl.active;
       h+=`<div class="mytp-row${inactive?' mytp-inactive':''}">
         <span class="mytp-pos fpos-${pos}" style="${F_POS_COLORS[pos]}">${pos}</span>
+        ${pl?.sofascore_player_id?`<img src="https://img.sofascore.com/api/v1/player/${pl.sofascore_player_id}/image" alt="" width="26" height="26" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surf3)" onerror="this.style.display='none'">`:'' }
         <span class="mytp-name">${esc(pl?.name||'—')}${inactive?' <span style="font-size:.65rem;color:var(--muted)">(eliminado)</span>':''}</span>
         <span class="mytp-team">${esc(pl?.team_name||'')}</span>
         ${tp.is_captain?'<span class="mytp-cap">C</span>':''}
+        ${sm.matches?`<span style="font-size:.68rem;color:var(--muted);flex-shrink:0">${sm.matches}PJ</span>`:''}
         <span class="mytp-pts">${capPts} pts</span>
       </div>`;
     });
