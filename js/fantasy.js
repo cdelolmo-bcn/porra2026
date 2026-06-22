@@ -29,6 +29,7 @@ function fantasyTab(sec,btn){
   if(sec==='myteam')fLoadMyTeam();
   if(sec==='ranking')fLoadRanking();
   if(sec==='jugadores')fLoadPlayersRanking();
+  if(sec!=='jugadores')_fPRankAll=[];
 }
 
 
@@ -350,14 +351,24 @@ async function fLoadRanking(){
 }
 
 // ── Clasificación de Jugadores ──
+let _fPRankAll=[];   // datos completos cacheados
+let _fPRankSort='pts';  // 'pts' | 'avg'
+let _fPRankPos='ALL';
+let _fPRankTeam='ALL';
+let _fPRankSearch='';
+
 async function fLoadPlayersRanking(){
   const c=document.getElementById('fantasy-players-ranking-container');
   if(!c)return;
+
+  // Si ya tenemos datos cacheados solo rerenderizamos
+  if(_fPRankAll.length){fRenderPlayersRanking();return;}
+
   c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div>';
 
   const{data,error}=await dbq(c=>c
     .from('fantasy_player_scores')
-    .select('player_id,points_base,fantasy_players!inner(name,short_name,position,team_name,country_code,active,season_id)')
+    .select('player_id,points_base,fantasy_players!inner(name,short_name,position,team_name,active,season_id)')
     .eq('fantasy_players.season_id',F_SEASON_ID));
 
   if(error||!data||!data.length){
@@ -373,34 +384,88 @@ async function fLoadPlayersRanking(){
     map[pid].pts+=(row.points_base||0);
     map[pid].matches++;
   }
+  _fPRankAll=Object.values(map);
+  fRenderPlayersRanking();
+}
 
-  const players=Object.values(map).sort((a,b)=>b.pts-a.pts);
+function fRenderPlayersRanking(){
+  const c=document.getElementById('fantasy-players-ranking-container');
+  if(!c)return;
   const posColor={GK:'var(--gold)',DEF:'#93c5fd',MID:'#86efac',FWD:'#c4b5fd'};
+  const teams=[...new Set(_fPRankAll.map(p=>p.team))].sort();
 
-  c.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.82rem">
-    <thead><tr style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">
-      <th style="padding:.4rem .6rem;text-align:left;border-bottom:1px solid var(--border)">#</th>
-      <th style="padding:.4rem .6rem;text-align:left;border-bottom:1px solid var(--border)">Jugador</th>
-      <th style="padding:.4rem .6rem;text-align:left;border-bottom:1px solid var(--border)">Pos</th>
-      <th style="padding:.4rem .6rem;text-align:left;border-bottom:1px solid var(--border)">Selección</th>
-      <th style="padding:.4rem .6rem;text-align:right;border-bottom:1px solid var(--border)">PJ</th>
-      <th style="padding:.4rem .6rem;text-align:right;border-bottom:1px solid var(--border)">Pts</th>
-    </tr></thead>
-    <tbody>${players.map((p,i)=>`
-      <tr style="${!p.active?'opacity:.45;':''}">
-        <td style="padding:.4rem .6rem;color:var(--muted);border-bottom:1px solid var(--border)">${i+1}</td>
-        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border);font-weight:500">
-          ${esc(p.name)}${!p.active?'<span style="font-size:.62rem;color:#ef4444;margin-left:.3rem">● eliminado</span>':''}
-        </td>
-        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border)">
-          <span style="font-size:.7rem;font-weight:700;color:${posColor[p.position]||'var(--muted)'}">${p.position}</span>
-        </td>
-        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.78rem">${esc(p.team)}</td>
-        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${p.matches}</td>
-        <td style="padding:.4rem .6rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:${!p.active?'#ef4444':'var(--green)'}">${p.pts}</td>
-      </tr>`).join('')}
-    </tbody>
-  </table>`;
+  // Filtrar
+  const search=_fPRankSearch.toLowerCase();
+  let list=_fPRankAll.filter(p=>{
+    if(_fPRankPos!=='ALL'&&p.position!==_fPRankPos)return false;
+    if(_fPRankTeam!=='ALL'&&p.team!==_fPRankTeam)return false;
+    if(search&&!p.name.toLowerCase().includes(search))return false;
+    return true;
+  });
+
+  // Ordenar
+  if(_fPRankSort==='avg'){
+    list.sort((a,b)=>(b.pts/b.matches)-(a.pts/a.matches));
+  }else{
+    list.sort((a,b)=>b.pts-a.pts);
+  }
+
+  const tabStyle=`display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .75rem;border-radius:20px;border:1px solid var(--border);font-size:.75rem;cursor:pointer;background:var(--surf2);color:var(--muted);font-family:inherit;transition:all .15s`;
+  const tabActiveStyle=`display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .75rem;border-radius:20px;border:1px solid var(--gold);font-size:.75rem;cursor:pointer;background:rgba(245,158,11,.12);color:var(--gold);font-weight:700;font-family:inherit;transition:all .15s`;
+
+  const posFilters=['ALL','GK','DEF','MID','FWD'].map(pos=>`
+    <button style="${_fPRankPos===pos?tabActiveStyle:tabStyle}" onclick="_fPRankPos='${pos}';fRenderPlayersRanking()">
+      ${pos==='ALL'?'Todos':pos}
+    </button>`).join('');
+
+  c.innerHTML=`
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.75rem">
+      <input id="fpr-search" type="text" placeholder="🔍 Buscar jugador..." value="${esc(_fPRankSearch)}"
+        oninput="_fPRankSearch=this.value;fRenderPlayersRanking()"
+        style="flex:1;min-width:160px;padding:.35rem .7rem;border-radius:6px;border:1px solid var(--border);background:var(--surf2);color:var(--fg);font-size:.8rem;font-family:inherit;outline:none"/>
+      <select id="fpr-team" onchange="_fPRankTeam=this.value;fRenderPlayersRanking()"
+        style="padding:.35rem .6rem;border-radius:6px;border:1px solid var(--border);background:var(--surf2);color:var(--fg);font-size:.78rem;font-family:inherit;outline:none;cursor:pointer">
+        <option value="ALL" ${_fPRankTeam==='ALL'?'selected':''}>Todas las selecciones</option>
+        ${teams.map(t=>`<option value="${esc(t)}" ${_fPRankTeam===t?'selected':''}>${esc(t)}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.75rem">
+      ${posFilters}
+      <div style="flex:1"></div>
+      <button style="${_fPRankSort==='pts'?tabActiveStyle:tabStyle}" onclick="_fPRankSort='pts';fRenderPlayersRanking()">Pts totales</button>
+      <button style="${_fPRankSort==='avg'?tabActiveStyle:tabStyle}" onclick="_fPRankSort='avg';fRenderPlayersRanking()">Media/partido</button>
+    </div>
+    ${list.length===0
+      ?'<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">No hay jugadores que coincidan.</div>'
+      :`<table style="width:100%;border-collapse:collapse;font-size:.82rem">
+        <thead><tr style="font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">
+          <th style="padding:.4rem .5rem;text-align:left;border-bottom:1px solid var(--border)">#</th>
+          <th style="padding:.4rem .5rem;text-align:left;border-bottom:1px solid var(--border)">Jugador</th>
+          <th style="padding:.4rem .5rem;text-align:left;border-bottom:1px solid var(--border)">Pos</th>
+          <th style="padding:.4rem .5rem;text-align:left;border-bottom:1px solid var(--border)">Selección</th>
+          <th style="padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(--border)">PJ</th>
+          <th style="padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(--border);color:${_fPRankSort==='avg'?'var(--gold)':'var(--muted)'}">Media</th>
+          <th style="padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(--border);color:${_fPRankSort==='pts'?'var(--gold)':'var(--muted)'}">Pts</th>
+        </tr></thead>
+        <tbody>${list.map((p,i)=>{
+          const avg=p.matches?+(p.pts/p.matches).toFixed(1):0;
+          return `<tr style="${!p.active?'opacity:.45;':''}">
+            <td style="padding:.38rem .5rem;color:var(--muted);border-bottom:1px solid var(--border);font-size:.75rem">${i+1}</td>
+            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);font-weight:500">
+              ${esc(p.name)}${!p.active?'<span style="font-size:.6rem;color:#ef4444;margin-left:.3rem">● elim.</span>':''}
+            </td>
+            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border)">
+              <span style="font-size:.68rem;font-weight:700;color:${posColor[p.position]||'var(--muted)'}">${p.position}</span>
+            </td>
+            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.76rem">${esc(p.team)}</td>
+            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${p.matches}</td>
+            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:${_fPRankSort==='avg'?'var(--fg)':'var(--muted)'}">${avg}</td>
+            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:${!p.active?'#ef4444':_fPRankSort==='pts'?'var(--green)':'var(--fg)'}">${p.pts}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>`
+    }`;
 }
 
 // ── Modal: equipo fantasy de un participante ──
