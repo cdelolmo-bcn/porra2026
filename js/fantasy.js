@@ -470,7 +470,7 @@ function fRenderPlayersRanking(){
             <td style="padding:.38rem .5rem;color:var(--muted);border-bottom:1px solid var(--border);font-size:.75rem">${i+1}</td>
             <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);font-weight:500">
               <div style="display:flex;align-items:center;gap:.5rem">
-                ${p.ssid?`<img src="https://img.sofascore.com/api/v1/player/${p.ssid}/image" alt="" width="28" height="28" style="border-radius:50%;object-fit:cover;background:var(--surf2);flex-shrink:0" onerror="this.style.display='none'">`:''}
+                ${p.ssid?`<img src="https://img.sofascore.com/api/v1/player/${p.ssid}/image" alt="" width="28" height="28" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;background:var(--surf2);flex-shrink:0" onerror="this.style.display='none'">`:''}
                 <span>${esc(p.name)}${!p.active?'<span style="font-size:.6rem;color:#ef4444;margin-left:.3rem">● elim.</span>':''}</span>
               </div>
             </td>
