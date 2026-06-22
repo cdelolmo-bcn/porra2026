@@ -454,12 +454,20 @@ async function ejecutarSimulacion(){
   if(_simOverrides['ext_jug'])simReal.extras.jug=_simOverrides['ext_jug'];
   const{data:porras,error}=await dbq(c=>(window._sbAnon||sb).from('porras').select('nombre,puntos,data').eq('paid',true));
   if(error||!porras||!porras.length){document.getElementById('sim-result-card').style.display='none';showConfirmModal('Sin datos','No hay porras pagadas.',()=>{});return;}
-  const ranked=porras.map(p=>{let pd={};try{pd=JSON.parse(p.data||'{}');}catch(e){}return{nombre:p.nombre,pts:calcScore(pd,simReal),ptsReal:p.puntos||0};}).sort((a,b)=>b.pts-a.pts);
+  const ranked=porras.map(p=>{
+    let pd={};try{pd=JSON.parse(p.data||'{}');}catch(e){}
+    const ptsSimKO=calcScore(pd,simReal);
+    const ptsRealKO=calcScore(pd,_simRealData);
+    const koДelta=ptsSimKO-ptsRealKO;
+    const ptsReal=p.puntos||0;
+    const ptsSim=ptsReal+koДelta;
+    return{nombre:p.nombre,pts:ptsSim,ptsReal,delta:koДelta};
+  }).sort((a,b)=>b.pts-a.pts);
   const card=document.getElementById('sim-result-card');
   const out=document.getElementById('sim-ranking-output');
   let h='<table class="rank-table"><thead><tr><th>#</th><th></th><th>Sim</th><th>Real</th><th>Delta</th></tr></thead><tbody>';
   ranked.forEach((r,i)=>{
-    const d=r.pts-r.ptsReal;
+    const d=r.delta;
     const ds=d>0?'<span style="color:var(--green)">+'+d+'</span>':d<0?'<span style="color:var(--accent)">'+d+'</span>':'<span style="color:var(--muted)">=</span>';
     h+='<tr><td><span class="rk '+(i<3?'g'+(i+1):'')+'">'+(i+1)+'</span></td><td><strong>'+esc(r.nombre)+'</strong></td><td><span class="pbadge">'+r.pts+'</span></td><td style="color:var(--muted);font-size:.8rem">'+r.ptsReal+'</td><td>'+ds+'</td></tr>';
   });
