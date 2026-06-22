@@ -404,7 +404,7 @@ async function fLoadPlayersRanking(){
     const pid=row.player_id;
     const pl=plMap[pid];
     if(!pl)continue;
-    if(!map[pid])map[pid]={name:pl.short_name||pl.name,position:pl.position,team:pl.team_name,active:pl.active,ssid:pl.sofascore_player_id,pts:0,matches:0};
+    if(!map[pid])map[pid]={pid,name:pl.short_name||pl.name,position:pl.position,team:pl.team_name,active:pl.active,ssid:pl.sofascore_player_id,pts:0,matches:0};
     map[pid].pts+=(row.points_base||0);
     map[pid].matches++;
   }
@@ -473,7 +473,7 @@ function fRenderPlayersRanking(){
         </tr></thead>
         <tbody>${list.map((p,i)=>{
           const avg=p.matches?+(p.pts/p.matches).toFixed(1):0;
-          return `<tr style="${!p.active?'opacity:.45;':''}">
+          return `<tr style="cursor:pointer;${!p.active?'opacity:.45;':''}" onclick="fShowPlayerModal('${p.pid}')" title="Ver detalle de ${esc(p.name)}">
             <td style="padding:.38rem .5rem;color:var(--muted);border-bottom:1px solid var(--border);font-size:.75rem">${i+1}</td>
             <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);font-weight:500">
               <div style="display:flex;align-items:center;gap:.5rem">
@@ -493,6 +493,104 @@ function fRenderPlayersRanking(){
         </tbody>
       </table>`
     }`;
+}
+
+// ── Modal: ficha detalle de jugador ──
+async function fShowPlayerModal(playerId){
+  const titleEl=document.getElementById('detail-title');
+  const contentEl=document.getElementById('detail-content');
+  const modal=document.getElementById('detail-modal');
+
+  // Buscar datos del jugador en fPlayers
+  const pl=fPlayers.find(p=>p.id===playerId);
+  if(!pl)return;
+
+  titleEl.innerHTML=`<div style="display:flex;align-items:center;gap:.75rem">
+    ${pl.sofascore_player_id?`<img src="https://img.sofascore.com/api/v1/player/${pl.sofascore_player_id}/image" alt="" width="48" height="48" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;background:var(--surf2)" onerror="this.style.display='none'">`:'' }
+    <div>
+      <div>${esc(pl.short_name||pl.name)}</div>
+      <div style="font-size:.75rem;font-family:'DM Sans',sans-serif;color:var(--muted);font-weight:400;letter-spacing:0">${esc(pl.team_name)} · ${pl.position}${!pl.active?' · <span style="color:#ef4444">eliminado</span>':''}</div>
+    </div>
+  </div>`;
+  contentEl.innerHTML='<div style="text-align:center;padding:2rem"><div class="spin"></div></div>';
+  modal.style.display='flex';
+
+  // Cargar scores con datos del partido
+  const{data,error}=await dbq(c=>c
+    .from('fantasy_player_scores')
+    .select('points_base,minutes_played,goals,assists,yellow_cards,red_cards,saves,clean_sheet,sofascore_rating,fantasy_matches!inner(home_team,away_team,home_score,away_score,match_date,round)')
+    .eq('player_id',playerId)
+    .order('fantasy_matches(match_date)',{ascending:true}));
+
+  if(error||!data||!data.length){
+    contentEl.innerHTML='<div style="color:var(--muted);padding:1rem;text-align:center;font-size:.85rem">Sin partidos registrados.</div>';
+    return;
+  }
+
+  const totalPts=data.reduce((s,r)=>s+r.points_base,0);
+  const posColor={GK:'var(--gold)',DEF:'#93c5fd',MID:'#86efac',FWD:'#c4b5fd'};
+
+  let h=`<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem">
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--gold);line-height:1">${totalPts}</div>
+      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Pts totales</div>
+    </div>
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--fg);line-height:1">${data.length}</div>
+      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Partidos</div>
+    </div>
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--fg);line-height:1">${data.length?+(totalPts/data.length).toFixed(1):0}</div>
+      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Media/PJ</div>
+    </div>
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#86efac;line-height:1">${data.reduce((s,r)=>s+r.goals,0)}</div>
+      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Goles</div>
+    </div>
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#93c5fd;line-height:1">${data.reduce((s,r)=>s+r.assists,0)}</div>
+      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Asistencias</div>
+    </div>
+  </div>
+  <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Partidos</div>
+  <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+    <thead><tr style="font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">
+      <th style="padding:.35rem .5rem;text-align:left;border-bottom:1px solid var(--border)">Partido</th>
+      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)">Min</th>
+      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)">⚽</th>
+      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)">🅰️</th>
+      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)" class="fpr-hide-mobile">🟨</th>
+      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)" class="fpr-hide-mobile">CS</th>
+      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)" class="fpr-hide-mobile">Rating</th>
+      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)">Pts</th>
+    </tr></thead>
+    <tbody>${data.map(r=>{
+      const m=r.fantasy_matches;
+      const date=new Date(m.match_date).toLocaleDateString('es',{day:'numeric',month:'short'});
+      const rival=pl.team_name===m.home_team
+        ?`vs ${m.away_team} (${m.home_score}-${m.away_score})`
+        :`vs ${m.home_team} (${m.away_score}-${m.home_score})`;
+      const cards=r.yellow_cards>0||r.red_cards>0
+        ?`${r.yellow_cards>0?'🟨'.repeat(r.yellow_cards):''}${r.red_cards>0?'🟥':''}`
+        :'—';
+      return `<tr>
+        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border)">
+          <div style="font-weight:500;font-size:.78rem">${rival}</div>
+          <div style="font-size:.65rem;color:var(--muted)">${date} · ${m.round}</div>
+        </td>
+        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${r.minutes_played}'</td>
+        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:${r.goals>0?'#86efac':'var(--muted)'};font-weight:${r.goals>0?'700':'400'}">${r.goals||'—'}</td>
+        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:${r.assists>0?'#93c5fd':'var(--muted)'};font-weight:${r.assists>0?'700':'400'}">${r.assists||'—'}</td>
+        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right" class="fpr-hide-mobile">${cards}</td>
+        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:${r.clean_sheet?'var(--gold)':'var(--muted)'}" class="fpr-hide-mobile">${r.clean_sheet?'✓':'—'}</td>
+        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)" class="fpr-hide-mobile">${r.sofascore_rating??'—'}</td>
+        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:var(--green)">${r.points_base}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+
+  contentEl.innerHTML=h;
 }
 
 // ── Modal: equipo fantasy de un participante ──
