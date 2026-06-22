@@ -510,22 +510,32 @@ async function fShowPlayerModal(playerId){
   const titleEl=document.getElementById('detail-title');
   const contentEl=document.getElementById('detail-content');
   const modal=document.getElementById('detail-modal');
-
-  // Buscar datos del jugador en fPlayers
   const pl=fPlayers.find(p=>p.id===playerId);
   if(!pl)return;
 
-  titleEl.innerHTML=`<div style="display:flex;align-items:center;gap:.75rem">
-    ${pl.sofascore_player_id?`<img src="https://img.sofascore.com/api/v1/player/${pl.sofascore_player_id}/image" alt="" width="48" height="48" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;background:var(--surf2)" onerror="this.style.display='none'">`:'' }
-    <div>
-      <div>${esc(pl.short_name||pl.name)}</div>
-      <div style="font-size:.75rem;font-family:'DM Sans',sans-serif;color:var(--muted);font-weight:400;letter-spacing:0">${esc(pl.team_name)} · ${pl.position}${!pl.active?' · <span style="color:#ef4444">eliminado</span>':''}</div>
+  const posColors={GK:{bg:'rgba(245,158,11,.15)',text:'var(--gold)'},DEF:{bg:'rgba(147,197,253,.15)',text:'#93c5fd'},MID:{bg:'rgba(134,239,172,.15)',text:'#86efac'},FWD:{bg:'rgba(196,181,253,.15)',text:'#c4b5fd'}};
+  const pc=posColors[pl.position]||{bg:'var(--surf2)',text:'var(--muted)'};
+
+  titleEl.innerHTML=`<div style="display:flex;align-items:center;gap:.85rem;width:100%">
+    <div style="position:relative;flex-shrink:0">
+      ${pl.sofascore_player_id
+        ?`<img src="https://img.sofascore.com/api/v1/player/${pl.sofascore_player_id}/image" alt="" width="56" height="56" referrerpolicy="no-referrer" style="border-radius:50%;object-fit:cover;background:var(--surf2);display:block" onerror="this.replaceWith(document.createRange().createContextualFragment('<div style=\"width:56px;height:56px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--muted)\">?</div>'))">`
+        :`<div style="width:56px;height:56px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--muted)">?</div>`}
+      <span style="position:absolute;bottom:-2px;right:-4px;background:${pc.bg};color:${pc.text};font-size:.62rem;font-weight:700;padding:2px 6px;border-radius:20px;border:1px solid ${pc.text}22">${pl.position}</span>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:1rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(pl.short_name||pl.name)}</div>
+      <div style="font-size:.75rem;color:var(--muted);font-weight:400;margin-top:2px">${esc(pl.team_name)}${!pl.active?' · <span style="color:#ef4444">eliminado</span>':''}</div>
+    </div>
+    <div id="fpm-total-pts" style="text-align:right;flex-shrink:0">
+      <div style="font-size:1.6rem;font-weight:700;color:var(--gold);line-height:1">—</div>
+      <div style="font-size:.62rem;color:var(--muted)">pts totales</div>
     </div>
   </div>`;
+
   contentEl.innerHTML='<div style="text-align:center;padding:2rem"><div class="spin"></div></div>';
   modal.style.display='flex';
 
-  // Cargar scores con datos del partido
   const{data,error}=await dbq(c=>c
     .from('fantasy_player_scores')
     .select('points_base,minutes_played,goals,assists,yellow_cards,red_cards,saves,clean_sheet,sofascore_rating,fantasy_matches!inner(home_team,away_team,home_score,away_score,match_date,round)')
@@ -538,69 +548,87 @@ async function fShowPlayerModal(playerId){
   }
 
   const totalPts=data.reduce((s,r)=>s+r.points_base,0);
-  const posColor={GK:'var(--gold)',DEF:'#93c5fd',MID:'#86efac',FWD:'#c4b5fd'};
+  const avg=data.length?+(totalPts/data.length).toFixed(1):0;
+  const totalGoals=data.reduce((s,r)=>s+r.goals,0);
+  const totalAssists=data.reduce((s,r)=>s+r.assists,0);
+  const totalSaves=data.reduce((s,r)=>s+(r.saves||0),0);
+  const isGK=pl.position==='GK';
 
-  let h=`<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem">
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--gold);line-height:1">${totalPts}</div>
-      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Pts totales</div>
-    </div>
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--fg);line-height:1">${data.length}</div>
-      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Partidos</div>
-    </div>
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--fg);line-height:1">${data.length?+(totalPts/data.length).toFixed(1):0}</div>
-      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Media/PJ</div>
-    </div>
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#86efac;line-height:1">${data.reduce((s,r)=>s+r.goals,0)}</div>
-      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Goles</div>
-    </div>
-    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1.25rem;text-align:center;min-width:80px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#93c5fd;line-height:1">${data.reduce((s,r)=>s+r.assists,0)}</div>
-      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Asistencias</div>
-    </div>
-  </div>
-  <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Partidos</div>
-  <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-    <thead><tr style="font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">
-      <th style="padding:.35rem .5rem;text-align:left;border-bottom:1px solid var(--border)">Partido</th>
-      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)">Min</th>
-      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)">⚽</th>
-      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)">🅰️</th>
-      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)" class="fpr-hide-mobile">🟨</th>
-      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)" class="fpr-hide-mobile">CS</th>
-      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)" class="fpr-hide-mobile">Rating</th>
-      <th style="padding:.35rem .5rem;text-align:right;border-bottom:1px solid var(--border)">Pts</th>
-    </tr></thead>
-    <tbody>${data.map(r=>{
-      const m=r.fantasy_matches;
-      const date=new Date(m.match_date).toLocaleDateString('es',{day:'numeric',month:'short'});
-      const rival=pl.team_name===m.home_team
-        ?`vs ${m.away_team} (${m.home_score}-${m.away_score})`
-        :`vs ${m.home_team} (${m.away_score}-${m.home_score})`;
-      const cards=r.yellow_cards>0||r.red_cards>0
-        ?`${r.yellow_cards>0?'🟨'.repeat(r.yellow_cards):''}${r.red_cards>0?'🟥':''}`
-        :'—';
-      return `<tr>
-        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border)">
-          <div style="font-weight:500;font-size:.78rem">${rival}</div>
-          <div style="font-size:.65rem;color:var(--muted)">${date} · ${m.round}</div>
-        </td>
-        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${r.minutes_played}'</td>
-        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:${r.goals>0?'#86efac':'var(--muted)'};font-weight:${r.goals>0?'700':'400'}">${r.goals||'—'}</td>
-        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:${r.assists>0?'#93c5fd':'var(--muted)'};font-weight:${r.assists>0?'700':'400'}">${r.assists||'—'}</td>
-        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right" class="fpr-hide-mobile">${cards}</td>
-        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:${r.clean_sheet?'var(--gold)':'var(--muted)'}" class="fpr-hide-mobile">${r.clean_sheet?'✓':'—'}</td>
-        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)" class="fpr-hide-mobile">${r.sofascore_rating??'—'}</td>
-        <td style="padding:.35rem .5rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:var(--green)">${r.points_base}</td>
-      </tr>`;
-    }).join('')}
-    </tbody>
-  </table>`;
+  // Actualizar pts en cabecera
+  const ptEl=document.getElementById('fpm-total-pts');
+  if(ptEl)ptEl.innerHTML=`<div style="font-size:1.6rem;font-weight:700;color:var(--gold);line-height:1">${totalPts}</div><div style="font-size:.62rem;color:var(--muted)">pts totales</div>`;
 
-  contentEl.innerHTML=h;
+  // Stats bar
+  const statCols=isGK
+    ?[['partidos',data.length,'var(--fg)'],['media',avg,'var(--fg)'],['paradas',totalSaves,'#93c5fd'],['goles',totalGoals,'#86efac'],['asist.',totalAssists,'#86efac']]
+    :[['partidos',data.length,'var(--fg)'],['media',avg,'var(--fg)'],['goles',totalGoals,'#86efac'],['asist.',totalAssists,'#93c5fd']];
+
+  // Gráfico barras
+  const maxPts=Math.max(...data.map(r=>r.points_base),1);
+  const maxBarH=48;
+  const barChart=data.map(r=>{
+    const m=r.fantasy_matches;
+    const rival=pl.team_name===m.home_team?m.away_team:m.home_team;
+    const shortRival=rival.length>8?rival.slice(0,8)+'…':rival;
+    const barH=Math.max(4,Math.round((r.points_base/maxPts)*maxBarH));
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div style="font-size:.65rem;color:var(--muted)">${r.points_base}</div>
+      <div style="width:100%;background:var(--green);border-radius:3px 3px 0 0;height:${barH}px"></div>
+      <div style="font-size:.6rem;color:var(--muted);text-align:center;line-height:1.2;width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${shortRival}</div>
+    </div>`;
+  }).join('');
+
+  // Cards por partido
+  const matchCards=data.map(r=>{
+    const m=r.fantasy_matches;
+    const date=new Date(m.match_date).toLocaleDateString('es',{day:'numeric',month:'short'});
+    const isHome=pl.team_name===m.home_team;
+    const rival=isHome?m.away_team:m.home_team;
+    const score=isHome?`${m.home_score} – ${m.away_score}`:`${m.away_score} – ${m.home_score}`;
+    const pill=(txt,bg,color)=>`<span style="font-size:.7rem;background:${bg};color:${color};border-radius:20px;padding:3px 8px;white-space:nowrap">${txt}</span>`;
+    const neutral=(txt)=>pill(txt,'var(--surf2)','var(--muted)');
+    let pills=`${neutral(r.minutes_played+"'")}`;
+    if(isGK&&r.saves>0)pills+=pill(r.saves+' paradas','rgba(147,197,253,.15)','#93c5fd');
+    if(isGK&&r.clean_sheet)pills+=pill('Portería a 0','rgba(245,158,11,.15)','var(--gold)');
+    if(r.goals>0)pills+=pill(r.goals+(r.goals===1?' gol':' goles'),'rgba(134,239,172,.15)','#86efac');
+    if(r.assists>0)pills+=pill(r.assists+(r.assists===1?' asist.':' asist.'),'rgba(147,197,253,.15)','#93c5fd');
+    if(r.yellow_cards>0)pills+=pill('🟨'.repeat(r.yellow_cards)+(r.red_cards>0?'🟥':''),'rgba(245,158,11,.12)','var(--gold)');
+    else if(r.red_cards>0)pills+=pill('🟥','rgba(239,68,68,.12)','#ef4444');
+    if(r.sofascore_rating)pills+=neutral('Rating '+r.sofascore_rating);
+    const ptColor=r.points_base>=10?'rgba(134,239,172,.2)':r.points_base>=5?'rgba(134,239,172,.1)':'var(--surf2)';
+    const ptTextColor=r.points_base>=5?'var(--green)':'var(--muted)';
+    return `<div style="border:1px solid var(--border);border-radius:10px;padding:.75rem;margin-bottom:.5rem">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.5rem">
+        <div>
+          <div style="font-size:.82rem;font-weight:600">vs ${esc(rival)}</div>
+          <div style="font-size:.68rem;color:var(--muted);margin-top:1px">${date} · ${esc(m.round)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+          <div style="font-size:.68rem;color:var(--muted)">${esc(pl.team_name)}</div>
+          <div style="font-size:.88rem;font-weight:600">${score}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;align-items:center">
+        ${pills}
+        <div style="margin-left:auto;background:${ptColor};color:${ptTextColor};font-size:.8rem;font-weight:700;padding:4px 10px;border-radius:8px">${r.points_base} pts</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  contentEl.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(${statCols.length},minmax(0,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1rem">
+      ${statCols.map(([lbl,val,color],i)=>`
+        <div style="padding:.6rem .4rem;text-align:center${i>0?';border-left:1px solid var(--border)':''}">
+          <div style="font-size:1.1rem;font-weight:700;color:${color}">${val}</div>
+          <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">${lbl}</div>
+        </div>`).join('')}
+    </div>
+    <div style="border:1px solid var(--border);border-radius:10px;padding:.75rem .75rem .5rem;margin-bottom:1rem">
+      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">Evolución</div>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:${maxBarH+24}px">${barChart}</div>
+    </div>
+    <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Partidos</div>
+    ${matchCards}`;
 }
 
 // ── Modal: equipo fantasy de un participante ──
