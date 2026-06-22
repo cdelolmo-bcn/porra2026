@@ -397,7 +397,7 @@ async function fLoadPlayersRanking(){
     const pid=row.player_id;
     const pl=plMap[pid];
     if(!pl)continue;
-    if(!map[pid])map[pid]={name:pl.short_name||pl.name,position:pl.position,team:pl.team_name,active:pl.active,pts:0,matches:0};
+    if(!map[pid])map[pid]={name:pl.short_name||pl.name,position:pl.position,team:pl.team_name,active:pl.active,ssid:pl.sofascore_player_id,pts:0,matches:0};
     map[pid].pts+=(row.points_base||0);
     map[pid].matches++;
   }
@@ -469,7 +469,10 @@ function fRenderPlayersRanking(){
           return `<tr style="${!p.active?'opacity:.45;':''}">
             <td style="padding:.38rem .5rem;color:var(--muted);border-bottom:1px solid var(--border);font-size:.75rem">${i+1}</td>
             <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);font-weight:500">
-              ${esc(p.name)}${!p.active?'<span style="font-size:.6rem;color:#ef4444;margin-left:.3rem">● elim.</span>':''}
+              <div style="display:flex;align-items:center;gap:.5rem">
+                ${p.ssid?`<img src="https://img.sofascore.com/api/v1/player/${p.ssid}/image" alt="" width="28" height="28" style="border-radius:50%;object-fit:cover;background:var(--surf2);flex-shrink:0" onerror="this.style.display='none'">`:''}
+                <span>${esc(p.name)}${!p.active?'<span style="font-size:.6rem;color:#ef4444;margin-left:.3rem">● elim.</span>':''}</span>
+              </div>
             </td>
             <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border)">
               <span style="font-size:.68rem;font-weight:700;color:${posColor[p.position]||'var(--muted)'}">${p.position}</span>
