@@ -266,6 +266,50 @@ function renderSimulador(){
       continue;
     }
 
+    if(admin&&(admin.h!=null||admin.a!=null)){
+      // Only one team known — show known team fixed, dropdown for unknown rival
+      const knownSide=admin.h!=null?'h':'a';
+      const knownTeam=admin[knownSide];
+      const unknownLabel=knownSide==='h'?def.al:def.hl;
+      const unknownCandKey=knownSide==='h'?'a':'h';
+      const unknownCands=(def[unknownCandKey]||Array.from({length:48},(_,idx)=>idx)).filter(ti=>!used.has(ti)||ti===_simOverrides[slot+'_'+unknownCandKey]);
+      const rivalVal=_simOverrides[slot+'_'+(knownSide==='h'?'a':'h')]!=null?parseInt(_simOverrides[slot+'_'+(knownSide==='h'?'a':'h')]):null;
+      const cur=_simOverrides[slot]!=null?parseInt(_simOverrides[slot]):null;
+      h+='<div style="background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:.4rem .6rem;margin-bottom:.35rem">';
+      h+='<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.3rem;margin-bottom:.3rem">';
+      if(knownSide==='h'){
+        h+='<div style="font-size:.8rem">'+fi(knownTeam,true)+' '+tn(knownTeam)+'</div>';
+        h+='<div style="color:var(--muted);font-size:.72rem;text-align:center">vs</div>';
+        h+='<div><div style="font-size:.6rem;color:var(--muted);margin-bottom:.1rem;text-align:right">'+unknownLabel+'</div>';
+        h+='<select data-simkey="'+slot+'_a" style="width:100%;background:var(--surf3);border:1px solid '+(rivalVal!=null?'var(--accent)':'var(--border)')+';color:var(--text);border-radius:5px;padding:.2rem .35rem;font-size:.76rem" onchange="simChange(this)">';
+        h+='<option value="">--</option>';
+        unknownCands.forEach(ti=>{if(ti!==knownTeam)h+='<option value="'+ti+'"'+(rivalVal===ti?' selected':'')+'>'+fi(ti,true)+' '+tn(ti)+'</option>';});
+        h+='</select></div>';
+      }else{
+        h+='<div><div style="font-size:.6rem;color:var(--muted);margin-bottom:.1rem">'+unknownLabel+'</div>';
+        h+='<select data-simkey="'+slot+'_h" style="width:100%;background:var(--surf3);border:1px solid '+(rivalVal!=null?'var(--accent)':'var(--border)')+';color:var(--text);border-radius:5px;padding:.2rem .35rem;font-size:.76rem" onchange="simChange(this)">';
+        h+='<option value="">--</option>';
+        unknownCands.forEach(ti=>{if(ti!==knownTeam)h+='<option value="'+ti+'"'+(rivalVal===ti?' selected':'')+'>'+fi(ti,true)+' '+tn(ti)+'</option>';});
+        h+='</select></div>';
+        h+='<div style="color:var(--muted);font-size:.72rem;text-align:center">vs</div>';
+        h+='<div style="font-size:.8rem;text-align:right">'+fi(knownTeam,true)+' '+tn(knownTeam)+'</div>';
+      }
+      h+='</div>';
+      if(rivalVal!=null){
+        h+='<div style="display:flex;align-items:center;gap:.4rem">';
+        h+='<span style="font-size:.65rem;color:var(--muted)">R32-'+i+':</span>';
+        const t1=knownSide==='h'?knownTeam:rivalVal;
+        const t2=knownSide==='h'?rivalVal:knownTeam;
+        h+='<select data-simkey="'+slot+'" style="flex:1;background:var(--surf3);border:1px solid '+(cur!=null?'var(--accent)':'var(--border)')+';color:var(--text);border-radius:5px;padding:.2rem .4rem;font-size:.78rem" onchange="simChange(this)">';
+        h+='<option value="">-- Ganador --</option>';
+        h+='<option value="'+t1+'"'+(cur===t1?' selected':'')+'>'+fi(t1,true)+' '+tn(t1)+'</option>';
+        h+='<option value="'+t2+'"'+(cur===t2?' selected':'')+'>'+fi(t2,true)+' '+tn(t2)+'</option>';
+        h+='</select></div>';
+      }
+      h+='</div>';
+      continue;
+    }
+
     // Fully pending — dual dropdown for both teams + winner
     const hVal=_simOverrides[slot+'_h']!=null?parseInt(_simOverrides[slot+'_h']):null;
     const aVal=_simOverrides[slot+'_a']!=null?parseInt(_simOverrides[slot+'_a']):null;
