@@ -349,28 +349,69 @@ function simChange(el){
 }
 async function ejecutarSimulacion(){
   if(!_simRealData){await loadSimulador();if(!_simRealData)return;}
+
+  // Construir simReal con {h,a,w} completo para cada slot
   const simReal=JSON.parse(JSON.stringify(_simRealData));
-  const rk=simReal.ko||{};
-  Object.entries(_simOverrides).forEach(([k,v])=>{
-    if(v==null||k.endsWith('_h')||k.endsWith('_a')||k.startsWith('ext_'))return;
-    rk[k]=typeof v==='string'?v:parseInt(v);
+  const rk={};
+
+  // Helper: ganador efectivo de un slot (real > override)
+  function sw(slot){
+    const rv=_simRealData.ko&&_simRealData.ko[slot];
+    if(rv!=null)return typeof rv==='object'?rv.w:rv;
+    const ov=_simOverrides[slot];
+    return ov!=null?parseInt(ov):null;
+  }
+  // Helper: equipo h/a de r32 slot
+  function r32Teams(slot){
+    const raw=_simRawKo[slot];
+    if(raw&&typeof raw==='object'){
+      const h=raw.h!=null?raw.h:(_simOverrides[slot+'_h']!=null?parseInt(_simOverrides[slot+'_h']):null);
+      const a=raw.a!=null?raw.a:(_simOverrides[slot+'_a']!=null?parseInt(_simOverrides[slot+'_a']):null);
+      return{h,a};
+    }
+    const h=_simOverrides[slot+'_h']!=null?parseInt(_simOverrides[slot+'_h']):null;
+    const a=_simOverrides[slot+'_a']!=null?parseInt(_simOverrides[slot+'_a']):null;
+    return{h,a};
+  }
+
+  // R32
+  for(let i=1;i<=16;i++){
+    const slot='r32_'+i;
+    const{h,a}=r32Teams(slot);
+    rk[slot]={h,a,w:sw(slot)};
+  }
+  // Octavos: feeds desde r32
+  Object.entries(SIM_OCT_FEEDS).forEach(([slot,[f1,f2]])=>{
+    rk[slot]={h:sw(f1),a:sw(f2),w:sw(slot)};
   });
-  simReal.ko=rk;simReal.extras=simReal.extras||{};
-  const champ=simGetTeam('final_1');
+  // Cuartos: feeds desde oct
+  Object.entries(SIM_QF_FEEDS).forEach(([slot,[f1,f2]])=>{
+    rk[slot]={h:sw(f1),a:sw(f2),w:sw(slot)};
+  });
+  // Semis: feeds desde qf
+  Object.entries(SIM_SF_FEEDS).forEach(([slot,[f1,f2]])=>{
+    rk[slot]={h:sw(f1),a:sw(f2),w:sw(slot)};
+  });
+  // Final
+  rk['final_1']={h:sw('sf_1'),a:sw('sf_2'),w:sw('final_1')};
+
+  simReal.ko=rk;
+  simReal.extras=simReal.extras||{};
+  const champ=sw('final_1');
   if(champ!=null)simReal.extras.camp=champ;
   if(_simOverrides['ext_esp'])simReal.extras.esp=_simOverrides['ext_esp'];
   if(_simOverrides['ext_gol'])simReal.extras.gol=_simOverrides['ext_gol'];
   if(_simOverrides['ext_jug'])simReal.extras.jug=_simOverrides['ext_jug'];
+
   const{data:porras,error}=await dbq(c=>(window._sbAnon||sb).from('porras').select('nombre,puntos,data').eq('paid',true));
   if(error||!porras||!porras.length){document.getElementById('sim-result-card').style.display='none';showConfirmModal('Sin datos','No hay porras pagadas.',()=>{});return;}
   const ranked=porras.map(p=>{
     let pd={};try{pd=JSON.parse(p.data||'{}');}catch(e){}
     const ptsSimKO=calcScore(pd,simReal);
     const ptsRealKO=calcScore(pd,_simRealData);
-    const koДelta=ptsSimKO-ptsRealKO;
+    const delta=ptsSimKO-ptsRealKO;
     const ptsReal=p.puntos||0;
-    const ptsSim=ptsReal+koДelta;
-    return{nombre:p.nombre,pts:ptsSim,ptsReal,delta:koДelta};
+    return{nombre:p.nombre,pts:ptsReal+delta,ptsReal,delta};
   }).sort((a,b)=>b.pts-a.pts);
   const card=document.getElementById('sim-result-card');
   const out=document.getElementById('sim-ranking-output');
