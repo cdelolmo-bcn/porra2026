@@ -459,10 +459,10 @@ function fRenderPlayersRanking(){
           <th style="padding:.4rem .5rem;text-align:left;border-bottom:1px solid var(--border)">#</th>
           <th style="padding:.4rem .5rem;text-align:left;border-bottom:1px solid var(--border)">Jugador</th>
           <th style="padding:.4rem .5rem;text-align:left;border-bottom:1px solid var(--border)">Pos</th>
-          <th style="padding:.4rem .5rem;text-align:left;border-bottom:1px solid var(--border)">Selección</th>
+          <th style="padding:.4rem .5rem;text-align:left;border-bottom:1px solid var(--border)" class="fpr-hide-mobile">Selección</th>
           <th style="padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(--border)">PJ</th>
-          <th style="padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(--border);color:${_fPRankSort==='avg'?'var(--gold)':'var(--muted)'}">Media</th>
-          <th style="padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(--border);color:${_fPRankSort==='pts'?'var(--gold)':'var(--muted)'}">Pts</th>
+          <th style="padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(--border);color:var(--gold)" class="${_fPRankSort==='pts'?'fpr-hide-mobile':''}">Media</th>
+          <th style="padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(--border);color:var(--gold)" class="${_fPRankSort==='avg'?'fpr-hide-mobile':''}">Pts</th>
         </tr></thead>
         <tbody>${list.map((p,i)=>{
           const avg=p.matches?+(p.pts/p.matches).toFixed(1):0;
@@ -477,10 +477,10 @@ function fRenderPlayersRanking(){
             <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border)">
               <span style="font-size:.68rem;font-weight:700;color:${posColor[p.position]||'var(--muted)'}">${p.position}</span>
             </td>
-            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.76rem">${esc(p.team)}</td>
+            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.76rem" class="fpr-hide-mobile">${esc(p.team)}</td>
             <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:var(--muted)">${p.matches}</td>
-            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:${_fPRankSort==='avg'?'var(--fg)':'var(--muted)'}">${avg}</td>
-            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:${!p.active?'#ef4444':_fPRankSort==='pts'?'var(--green)':'var(--fg)'}">${p.pts}</td>
+            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);text-align:right;color:var(--fg)" class="${_fPRankSort==='pts'?'fpr-hide-mobile':''}">${avg}</td>
+            <td style="padding:.38rem .5rem;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:${!p.active?'#ef4444':'var(--green)'}" class="${_fPRankSort==='avg'?'fpr-hide-mobile':''}">${p.pts}</td>
           </tr>`;
         }).join('')}
         </tbody>
