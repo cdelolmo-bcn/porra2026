@@ -406,12 +406,41 @@ async function ejecutarSimulacion(){
   if(_simOverrides['ext_gol'])simReal.extras.gol=_simOverrides['ext_gol'];
   if(_simOverrides['ext_jug'])simReal.extras.jug=_simOverrides['ext_jug'];
 
+  // Helper: ganador real (solo de _simRealData, sin overrides)
+  function swReal(slot){
+    const rv=_simRealData.ko&&_simRealData.ko[slot];
+    if(rv!=null)return typeof rv==='object'?rv.w:rv;
+    return null;
+  }
+
+  // Base real: misma estructura h/a del admin, pero solo winners reales (sin overrides)
+  const baseRk={};
+  for(let i=1;i<=16;i++){
+    const slot='r32_'+i;
+    const{h,a}=r32Teams(slot);
+    baseRk[slot]={h,a,w:swReal(slot)};
+  }
+  [[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]].forEach(([a,b],i)=>{
+    const slot='oct_'+(i+1);
+    baseRk[slot]={h:swReal('r32_'+a),a:swReal('r32_'+b),w:swReal(slot)};
+  });
+  [[2,1],[5,6],[3,4],[7,8]].forEach(([a,b],i)=>{
+    const slot='qf_'+(i+1);
+    baseRk[slot]={h:swReal('oct_'+a),a:swReal('oct_'+b),w:swReal(slot)};
+  });
+  [[1,2],[3,4]].forEach(([a,b],i)=>{
+    const slot='sf_'+(i+1);
+    baseRk[slot]={h:swReal('qf_'+a),a:swReal('qf_'+b),w:swReal(slot)};
+  });
+  baseRk['final_1']={h:swReal('sf_1'),a:swReal('sf_2'),w:swReal('final_1')};
+  const baseReal={...JSON.parse(JSON.stringify(_simRealData)),ko:baseRk};
+
   const{data:porras,error}=await dbq(c=>(window._sbAnon||sb).from('porras').select('nombre,puntos,data').eq('paid',true));
   if(error||!porras||!porras.length){document.getElementById('sim-result-card').style.display='none';showConfirmModal('Sin datos','No hay porras pagadas.',()=>{});return;}
   const ranked=porras.map(p=>{
     let pd={};try{pd=JSON.parse(p.data||'{}');}catch(e){}
     const ptsSimKO=calcScore(pd,simReal);
-    const ptsRealKO=calcScore(pd,_simRealData);
+    const ptsRealKO=calcScore(pd,baseReal);
     const delta=ptsSimKO-ptsRealKO;
     const ptsReal=p.puntos||0;
     return{nombre:p.nombre,pts:ptsReal+delta,ptsReal,delta};
