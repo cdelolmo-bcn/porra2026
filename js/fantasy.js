@@ -383,26 +383,32 @@ async function fLoadPlayersRanking(){
 
   c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div>';
 
-  await fLoadPlayers();
-  if(!fPlayers.length){
-    c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">No hay jugadores cargados.</div>';
+  // 1. Cargar solo las puntuaciones (tabla pequeña)
+  const{data:allScores,error:errScores}=await dbq(c=>c
+    .from('fantasy_player_scores')
+    .select('player_id,points_base'));
+
+  if(errScores||!allScores||!allScores.length){
+    c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">Aún no hay puntuaciones registradas.</div>';
     return;
   }
 
-  const plMap={};
-  fPlayers.forEach(p=>{plMap[p.id]=p;});
-  const ids=fPlayers.map(p=>p.id);
+  // 2. Obtener IDs únicos de jugadores con puntuaciones
+  const uniqueIds=[...new Set(allScores.map(s=>s.player_id))];
 
-  // Fetch en bloques de 500 para evitar límites de URL
-  let allScores=[];
-  for(let i=0;i<ids.length;i+=500){
+  // 3. Fetch solo esos jugadores (serán 50-200, no 1474)
+  let scoredPlayers=[];
+  for(let i=0;i<uniqueIds.length;i+=500){
     const{data:chunk,error}=await dbq(c=>c
-      .from('fantasy_player_scores')
-      .select('player_id,points_base')
-      .in('player_id',ids.slice(i,i+500)));
+      .from('fantasy_players')
+      .select('id,name,short_name,position,team_name,active,sofascore_player_id')
+      .in('id',uniqueIds.slice(i,i+500)));
     if(error)break;
-    if(chunk)allScores=allScores.concat(chunk);
+    if(chunk)scoredPlayers=scoredPlayers.concat(chunk);
   }
+
+  const plMap={};
+  scoredPlayers.forEach(p=>{plMap[p.id]=p;});
 
   if(!allScores.length){
     c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">Aún no hay puntuaciones registradas.</div>';
@@ -510,8 +516,17 @@ async function fShowPlayerModal(playerId){
   const titleEl=document.getElementById('detail-title');
   const contentEl=document.getElementById('detail-content');
   const modal=document.getElementById('detail-modal');
-  await fLoadPlayers();
-  const pl=fPlayers.find(p=>p.id===playerId);
+
+  // Buscar en caché del ranking primero (evita cargar 1474 jugadores)
+  let pl=_fPRankAll.find(p=>p.pid===playerId);
+  if(pl){
+    // Adaptar formato del ranking al formato completo
+    pl={id:playerId,name:pl.name,short_name:pl.name,position:pl.position,team_name:pl.team,active:pl.active,sofascore_player_id:pl.ssid};
+  } else {
+    // Solo si no está en caché (viene de Mi Equipo o modal ajeno), cargar todos
+    await fLoadPlayers();
+    pl=fPlayers.find(p=>p.id===playerId);
+  }
   if(!pl)return;
 
   const posColors={GK:{bg:'rgba(245,158,11,.15)',text:'var(--gold)'},DEF:{bg:'rgba(147,197,253,.15)',text:'#93c5fd'},MID:{bg:'rgba(134,239,172,.15)',text:'#86efac'},FWD:{bg:'rgba(196,181,253,.15)',text:'#c4b5fd'}};
@@ -786,6 +801,5 @@ async function fSsGet(path){try{const r=await fetch(F_SS_BASE+path);if(!r.ok)ret
 // Cerrar picker al pulsar fuera
 document.getElementById('fpicker-overlay')?.addEventListener('click',e=>{if(e.target===document.getElementById('fpicker-overlay'))fClosePicker();});
 
-// Pre-cargar jugadores en background
-setTimeout(()=>{if(fPlayers.length===0)fLoadPlayers();},4000);
+// Jugadores se cargan bajo demanda (picker o modal)
 
