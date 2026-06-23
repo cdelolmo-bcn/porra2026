@@ -413,11 +413,18 @@ async function ejecutarSimulacion(){
     return null;
   }
 
-  // Base real: misma estructura h/a del admin, pero solo winners reales (sin overrides)
+  // Base real: solo datos del admin (sin overrides del simulador)
+  // Así los equipos seleccionados en el simulador sí generan delta
+  function r32TeamsReal(slot){
+    const raw=_simRawKo[slot];
+    if(raw&&typeof raw==='object')return{h:raw.h??null,a:raw.a??null};
+    return{h:null,a:null};
+  }
+
   const baseRk={};
   for(let i=1;i<=16;i++){
     const slot='r32_'+i;
-    const{h,a}=r32Teams(slot);
+    const{h,a}=r32TeamsReal(slot); // solo admin, sin overrides
     baseRk[slot]={h,a,w:swReal(slot)};
   }
   [[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]].forEach(([a,b],i)=>{
