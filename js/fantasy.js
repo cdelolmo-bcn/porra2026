@@ -383,12 +383,21 @@ async function fLoadPlayersRanking(){
 
   c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)"><div class="spin"></div></div>';
 
-  // 1. Cargar solo las puntuaciones (tabla pequeña)
-  const{data:allScores,error:errScores}=await dbq(c=>c
-    .from('fantasy_player_scores')
-    .select('player_id,points_base'));
+  // 1. Cargar todas las puntuaciones con paginación (límite Supabase = 1000 por query)
+  let allScores=[];
+  let from=0;
+  while(true){
+    const{data:chunk,error:errScores}=await dbq(c=>c
+      .from('fantasy_player_scores')
+      .select('player_id,points_base')
+      .range(from,from+999));
+    if(errScores||!chunk)break;
+    allScores=allScores.concat(chunk);
+    if(chunk.length<1000)break;
+    from+=1000;
+  }
 
-  if(errScores||!allScores||!allScores.length){
+  if(!allScores.length){
     c.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">Aún no hay puntuaciones registradas.</div>';
     return;
   }
