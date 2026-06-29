@@ -213,7 +213,7 @@ function calcScore(porra,real){
   const pW=slot=>pk[slot]??null; // porra predicted winner for slot
 
   // Build porra oct slots from r32 winners (correct FIFA bracket feeding)
-  const pOct=[[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]].map(([a,b],i)=>({
+  const pOct=[[1,2],[3,4],[5,6],[7,8],[9,10],[11,12],[13,14],[15,16]].map(([a,b],i)=>({
     slot:'oct_'+(i+1), h:pW('r32_'+a), a:pW('r32_'+b)
   }));
   // Build porra qf slots from oct winners
