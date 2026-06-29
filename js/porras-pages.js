@@ -28,19 +28,19 @@ function renderBracketReadOnly(ko, realKo, grupos, r32Slots){
   const rA=slot=>{if(!realKo)return null;const v=realKo[slot==='final_1'?'fin_1':slot]||realKo[slot];return v&&typeof v==='object'?v.a:null;};
   const rW=slot=>{if(!realKo)return null;const v=realKo[slot==='final_1'?'fin_1':slot]||realKo[slot];return v&&typeof v==='object'?v.w:v;};
 
-  // Reconstruct R32 h/a: use explicit r32Slots if provided, else from grupos
+  // Reconstruir R32 siempre desde grupos (más fiable que r32_slots que puede tener
+  // datos corruptos de importación Excel). r32_slots solo como fallback si no hay grupos.
   let pR32Map={};
-  if(r32Slots&&Object.keys(r32Slots).length>0){
+  try{
+    if(grupos&&Object.keys(grupos).length>0){
+      const st=calcStandings(Object.fromEntries(Object.entries(grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
+      const btRes=getBT(st);
+      const r32=bR32(st,btRes.map);
+      r32.forEach((tie,i)=>{pR32Map['r32_'+(i+1)]={h:tie.h,a:tie.a};});
+    }
+  }catch(e){}
+  if(Object.keys(pR32Map).length===0&&r32Slots&&Object.keys(r32Slots).length>0){
     pR32Map=r32Slots;
-  } else {
-    try{
-      if(grupos&&Object.keys(grupos).length>0){
-        const st=calcStandings(Object.fromEntries(Object.entries(grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
-        const btRes=getBT(st);
-        const r32=bR32(st,btRes.map);
-        r32.forEach((tie,i)=>{pR32Map['r32_'+(i+1)]={h:tie.h,a:tie.a};});
-      }
-    }catch(e){}
   }
 
   // Build porra h/a for each phase from winners

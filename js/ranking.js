@@ -229,19 +229,19 @@ function calcScore(porra,real){
   // Los equipos de cada cruce de R32 NO se derivan de un "ganador" previo (no hay ronda
   // anterior dentro de la porra): se derivan de los grupos predichos por el participante.
   // Reconstruimos h/a de cada cruce igual que hace renderBracketReadOnly(), usando
-  // r32_slots si está disponible (import Excel) o calculándolo desde grupos.
+  // Reconstruir R32 siempre desde grupos (más fiable que r32_slots que puede tener
+  // datos corruptos de importación Excel). r32_slots solo como fallback si no hay grupos.
   let pR32Map={};
-  if(porra.r32_slots&&Object.keys(porra.r32_slots).length>0){
+  try{
+    if(porra.grupos&&Object.keys(porra.grupos).length>0){
+      const st=calcStandings(Object.fromEntries(Object.entries(porra.grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
+      const btRes=getBT(st);
+      const r32=bR32(st,btRes.map);
+      r32.forEach((tie,i)=>{pR32Map['r32_'+(i+1)]={h:tie.h,a:tie.a};});
+    }
+  }catch(e){}
+  if(Object.keys(pR32Map).length===0&&porra.r32_slots&&Object.keys(porra.r32_slots).length>0){
     pR32Map=porra.r32_slots;
-  } else {
-    try{
-      if(porra.grupos&&Object.keys(porra.grupos).length>0){
-        const st=calcStandings(Object.fromEntries(Object.entries(porra.grupos).map(([g,ms])=>[g,ms.map(m=>({gh:m.gh,ga:m.ga}))])));
-        const btRes=getBT(st);
-        const r32=bR32(st,btRes.map);
-        r32.forEach((tie,i)=>{pR32Map['r32_'+(i+1)]={h:tie.h,a:tie.a};});
-      }
-    }catch(e){}
   }
   for(let i=1;i<=16;i++){
     const slot='r32_'+i;
