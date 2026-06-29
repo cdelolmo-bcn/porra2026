@@ -61,14 +61,14 @@ function renderBracketReadOnly(ko, realKo, grupos, r32Slots){
     h+='<div style="display:flex;align-items:center;gap:.3rem;font-size:.8rem;'+(pw===ph?'font-weight:700;color:var(--gold)':'')+'">';
     h+=ph!=null?fi(ph,true)+' '+tn(ph):'<span style="color:var(--muted)">—</span>';
     h+='</div>';
-    if(ph!=null&&rw!=null)h+='<span style="font-size:.65rem">'+(hOk?'✅':'❌')+'</span>';
+    if(ph!=null&&rh!=null)h+='<span style="font-size:.65rem">'+(hOk?'✅':'❌')+'</span>';
     h+='</div>';
     // Away team
     h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:.15rem 0">';
     h+='<div style="display:flex;align-items:center;gap:.3rem;font-size:.8rem;'+(pw===pa?'font-weight:700;color:var(--gold)':'')+'">';
     h+=pa!=null?fi(pa,true)+' '+tn(pa):'<span style="color:var(--muted)">—</span>';
     h+='</div>';
-    if(pa!=null&&rw!=null)h+='<span style="font-size:.65rem">'+(aOk?'✅':'❌')+'</span>';
+    if(pa!=null&&ra!=null)h+='<span style="font-size:.65rem">'+(aOk?'✅':'❌')+'</span>';
     h+='</div>';
     h+='</div>';
     return h;
@@ -94,12 +94,12 @@ function renderBracketReadOnly(ko, realKo, grupos, r32Slots){
     // Local
     card+='<div style="display:flex;align-items:center;justify-content:space-between;padding:.12rem 0;border-bottom:1px solid var(--border)">';
     card+='<div style="font-size:.78rem;'+(pw===hTeam&&hTeam!=null?'font-weight:700;color:var(--gold)':'')+'">'+(hTeam!=null?fi(hTeam,true)+' '+tn(hTeam):'<span style="color:var(--muted)">—</span>')+'</div>';
-    if(hTeam!=null&&rW(slot)!=null)card+='<span style="font-size:.65rem">'+(hTeam===rh?'✅':'❌')+'</span>';
+    if(hTeam!=null&&rh!=null)card+='<span style="font-size:.65rem">'+(hTeam===rh?'✅':'❌')+'</span>';
     card+='</div>';
     // Visitante
     card+='<div style="display:flex;align-items:center;justify-content:space-between;padding:.12rem 0">';
     card+='<div style="font-size:.78rem;'+(pw===aTeam&&aTeam!=null?'font-weight:700;color:var(--gold)':'')+'">'+(aTeam!=null?fi(aTeam,true)+' '+tn(aTeam):'<span style="color:var(--muted)">—</span>')+'</div>';
-    if(aTeam!=null&&rW(slot)!=null)card+='<span style="font-size:.65rem">'+(aTeam===ra?'✅':'❌')+'</span>';
+    if(aTeam!=null&&ra!=null)card+='<span style="font-size:.65rem">'+(aTeam===ra?'✅':'❌')+'</span>';
     card+='</div></div>';
     h+=card;
   }
