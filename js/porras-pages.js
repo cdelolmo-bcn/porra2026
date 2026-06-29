@@ -45,7 +45,7 @@ function renderBracketReadOnly(ko, realKo, grupos, r32Slots){
 
   // Build porra h/a for each phase from winners
   const pW=slot=>ko?.[slot]??null;
-  const pOct=[[3,4],[1,2],[9,10],[11,12],[5,6],[7,8],[13,14],[15,16]].map(([a,b],i)=>({slot:'oct_'+(i+1),h:pW('r32_'+a),a:pW('r32_'+b)}));
+  const pOct=[[1,2],[3,4],[5,6],[7,8],[9,10],[11,12],[13,14],[15,16]].map(([a,b],i)=>({slot:'oct_'+(i+1),h:pW('r32_'+a),a:pW('r32_'+b)}));
   const pQF=[[2,1],[5,6],[3,4],[7,8]].map(([a,b],i)=>({slot:'qf_'+(i+1),h:pW('oct_'+a),a:pW('oct_'+b)}));
   const pSF=[[1,2],[3,4]].map(([a,b],i)=>({slot:'sf_'+(i+1),h:pW('qf_'+a),a:pW('qf_'+b)}));
   const pFin={slot:'final_1',h:pW('sf_1'),a:pW('sf_2')};

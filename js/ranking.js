@@ -253,20 +253,20 @@ function calcScore(porra,real){
 
   // ── Octavos (max 16pts): 1pt por cada equipo acertado en slot correcto ──
   pOct.forEach(({slot,h,a})=>{
-    if(h!=null&&rH(slot)!=null&&h===rH(slot))pts+=1;
-    if(a!=null&&rA(slot)!=null&&a===rA(slot))pts+=1;
+    if(h!=null&&rW(slot)!=null&&h===rH(slot))pts+=1;
+    if(a!=null&&rW(slot)!=null&&a===rA(slot))pts+=1;
   });
 
   // ── QF (max 8pts): 1pt por cada equipo acertado en slot correcto ──
   pQF.forEach(({slot,h,a})=>{
-    if(h!=null&&rH(slot)!=null&&h===rH(slot))pts+=1;
-    if(a!=null&&rA(slot)!=null&&a===rA(slot))pts+=1;
+    if(h!=null&&rW(slot)!=null&&h===rH(slot))pts+=1;
+    if(a!=null&&rW(slot)!=null&&a===rA(slot))pts+=1;
   });
 
   // ── SF (max 4pts): 1pt por cada equipo acertado en slot correcto ──
   pSF.forEach(({slot,h,a})=>{
-    if(h!=null&&rH(slot)!=null&&h===rH(slot))pts+=1;
-    if(a!=null&&rA(slot)!=null&&a===rA(slot))pts+=1;
+    if(h!=null&&rW(slot)!=null&&h===rH(slot))pts+=1;
+    if(a!=null&&rW(slot)!=null&&a===rA(slot))pts+=1;
   });
 
   // ── Final (max 2pts): 1pt por finalista acertado sin importar lado ──
