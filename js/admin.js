@@ -289,7 +289,7 @@ async function saveAdmRes(){
   if(!sb)return;document.getElementById('res-spin').style.display='';document.getElementById('btn-saveres').disabled=true;
   const res={grupos:{},ko:{},extras:{}};
   const rounds=[{n:16,p:'r32'},{n:8,p:'oct'},{n:4,p:'qf'},{n:2,p:'sf'},{n:1,p:'fin'}];
-  rounds.forEach(r=>{for(let i=1;i<=r.n;i++){const k=r.p+'_'+i,gv=(id)=>{const el=document.getElementById(id);return el&&el.value!==''?parseInt(el.value):null;};res.ko[k]={h:gv('adm_'+k+'_h'),a:gv('adm_'+k+'_a'),w:gv('adm_'+k+'_w')};}});
+  rounds.forEach(r=>{for(let i=1;i<=r.n;i++){const k=r.p+'_'+i,gv=(id)=>{const el=document.getElementById(id);return el&&el.value!==''?parseInt(el.value):null;};const w=gv('adm_'+k+'_w');const isR32=r.p==='r32';const h=isR32||w!=null?gv('adm_'+k+'_h'):null;const a=isR32||w!=null?gv('adm_'+k+'_a'):null;res.ko[k]={h,a,w};}});
   const gv=(id)=>{const el=document.getElementById(id);return el&&el.value!==''?parseInt(el.value):null;};
   res.extras={camp:gv('adm_ext_camp'),esp:document.getElementById('adm_ext_esp')?.value||null,gol:document.getElementById('adm_ext_gol')?.value.trim()||null,jug:document.getElementById('adm_ext_jug')?.value.trim()||null};
   const{error}=await sb.from('resultados').upsert({id:1,data:JSON.stringify(res)});
